@@ -174,6 +174,7 @@ async def _ingest_show_log_copy(rows: list[dict], show_date: date) -> None:
                     available, gross, occupancy, mins_left
                 FROM bms_show_log_staging
                 ON CONFLICT (show_date, session_key) DO UPDATE SET
+                    total_seats = EXCLUDED.total_seats,
                     sold = EXCLUDED.sold,
                     available = EXCLUDED.available,
                     gross = EXCLUDED.gross,
@@ -208,6 +209,7 @@ async def _ingest_show_log_batched(
         stmt = stmt.on_conflict_do_update(
             index_elements=["show_date", "session_key"],
             set_={
+                "total_seats": stmt.excluded.total_seats,
                 "sold": stmt.excluded.sold,
                 "available": stmt.excluded.available,
                 "gross": stmt.excluded.gross,
