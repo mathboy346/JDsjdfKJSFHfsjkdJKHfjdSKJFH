@@ -1,0 +1,6 @@
+sqlalchemy[asyncio]==2.0.35
+asyncpg==0.30.0
+cloudscraper
+redis[hiredis]==5.1.0
+pydantic-settings==2.5.2
+python-dotenv==1.0.1
