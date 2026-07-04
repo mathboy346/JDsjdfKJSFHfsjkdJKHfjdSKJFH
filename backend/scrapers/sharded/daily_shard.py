@@ -1,7 +1,9 @@
-"""Daily shard scraper with cutoff window."""
+"""Daily shard scraper. Refreshes every show for today's date on every run —
+the BMS byvenue API already returns the full day per venue on each call, so
+keeping every row costs no extra requests and keeps evening/night shows from
+going stale between the overnight advance scrape and their own showtime."""
 
 import json
-import os
 import sys
 from datetime import datetime
 
@@ -14,8 +16,6 @@ from backend.scrapers.sharded.paths import (
     IST,
 )
 from backend.scrapers.sharded.runner import make_logger, save_detailed, scrape_shard
-
-CUTOFF_MINUTES = int(os.environ.get("DAILY_CUTOFF_MINUTES", "200"))
 
 
 def minutes_left(show_time_str: str) -> float:
@@ -32,14 +32,13 @@ def daily_row_filter(rows: list[dict], vcode: str, meta: dict) -> list[dict]:
     kept = []
     for r in rows:
         mins = minutes_left(r.get("time", ""))
-        if mins <= CUTOFF_MINUTES:
-            row = dict(r)
-            row["minsLeft"] = round(mins, 1)
-            row["city"] = meta.get("City", "Unknown")
-            row["state"] = meta.get("State", "Unknown")
-            row["source"] = "BMS"
-            row["date"] = daily_date_code()
-            kept.append(row)
+        row = dict(r)
+        row["minsLeft"] = round(mins, 1)
+        row["city"] = meta.get("City", "Unknown")
+        row["state"] = meta.get("State", "Unknown")
+        row["source"] = "BMS"
+        row["date"] = daily_date_code()
+        kept.append(row)
     return kept
 
 
@@ -50,7 +49,7 @@ def main() -> int:
     lf = log_path("daily", date_code, sid)
 
     log = make_logger(lf)
-    log(f"DAILY SHARD {sid} STARTED | date={date_code} | cutoff={CUTOFF_MINUTES}m")
+    log(f"DAILY SHARD {sid} STARTED | date={date_code}")
 
     with open(vpath, encoding="utf-8") as f:
         venues = json.load(f)

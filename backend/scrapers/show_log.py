@@ -12,7 +12,6 @@ from backend.config import get_settings
 from backend.scrapers.parser import parse_payload
 
 IST = timezone(timedelta(hours=5, minutes=30))
-CUTOFF_MINUTES = int(os.environ.get("DAILY_CUTOFF_MINUTES", "200"))
 SHOW_LOG_BATCH_SIZE = int(os.environ.get("SHOW_LOG_BATCH_SIZE", "3000"))
 SHOW_LOG_USE_COPY = os.environ.get("SHOW_LOG_USE_COPY", "1").lower() not in (
     "0",
@@ -95,10 +94,11 @@ def _show_log_tuples(rows: list[dict], show_date: date) -> list[tuple]:
 
 
 def parse_daily_payload(data: dict, date_code: str) -> list[dict]:
-    """Parse payload, filtering to shows within CUTOFF_MINUTES of now."""
+    """Parse payload for today's date, tagging each row with minsLeft. Keeps
+    every row regardless of how far out its showtime is — see daily_shard.py's
+    daily_row_filter for why far-future rows shouldn't be discarded here."""
     rows = parse_payload(data, date_code)
     now_ist = datetime.now(IST)
-    filtered = []
     for row in rows:
         show_time_str = row.get("time", "")
         try:
@@ -106,14 +106,10 @@ def parse_daily_payload(data: dict, date_code: str) -> list[dict]:
                 f"{now_ist.strftime('%Y-%m-%d')} {show_time_str}",
                 "%Y-%m-%d %I:%M %p",
             ).replace(tzinfo=IST)
-            mins_diff = (show_dt - now_ist).total_seconds() / 60
-            row["minsLeft"] = round(mins_diff, 1)
-            if abs(mins_diff) <= CUTOFF_MINUTES:
-                filtered.append(row)
+            row["minsLeft"] = round((show_dt - now_ist).total_seconds() / 60, 1)
         except ValueError:
             row["minsLeft"] = None
-            filtered.append(row)
-    return filtered
+    return rows
 
 
 async def _ingest_show_log_copy(rows: list[dict], show_date: date) -> None:
