@@ -107,7 +107,7 @@ async def ingest_rows(
         sold = md["sold"]
         seats = md["totalSeats"]
         occ = md["occupancy"]
-        nett = estimate_nett_cr(gross, occ, shows)
+        nett = estimate_nett_cr(gross, shows)
 
         snap_records.append({
             "variant_key": variant_key,
