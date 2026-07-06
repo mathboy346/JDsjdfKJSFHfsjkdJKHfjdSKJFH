@@ -18,6 +18,33 @@ from backend.scrapers.show_log import ingest_show_log
 IST = timezone(timedelta(hours=5, minutes=30))
 logger = logging.getLogger(__name__)
 INGEST_MAX_RETRIES = 5
+# Keep in sync with LIVE_CUTOFF_HOURS in the bh repo's
+# backend/processors/live_cutoff.py (this repo has no API layer, so no shared
+# import is possible — the two must be changed together).
+LIVE_CUTOFF_MINUTES = 3 * 60
+
+
+def _cutoff_rows_for_aggregation(rows: list[dict], mode: str) -> list[dict]:
+    """Scope rows for the CurrentDaily/DailyHistory/DailyCity/DailyChain snapshot
+    aggregate to the same live-cutoff window used by live queries in the bh
+    repo (backend/api/live_totals.py) — otherwise these snapshots (and anything
+    built from them, like the movie page's hourly gross chart) show a "whole
+    day" figure while the live pages show the cutoff-scoped one.
+
+    Uses each row's `minsLeft` (minutes until showtime, computed at scrape time
+    by daily_shard.py's minutes_left()) rather than re-deriving "now" here,
+    since ingest can run a few minutes after the scrape itself — minsLeft
+    reflects the moment each row was actually captured.
+
+    Advance rows (mode="advance") cover tomorrow, which is entirely future —
+    no cutoff applies there, and those rows don't carry minsLeft at all.
+    """
+    if mode != "daily":
+        return rows
+    return [
+        r for r in rows
+        if r.get("minsLeft") is None or r["minsLeft"] <= LIVE_CUTOFF_MINUTES
+    ]
 
 
 def _is_deadlock(exc: BaseException) -> bool:
@@ -96,13 +123,16 @@ async def ingest_from_rows(
         await _ingest_granular(rows, mode)
         return
 
+    agg_rows = _cutoff_rows_for_aggregation(rows, mode)
     t0 = time.monotonic()
-    summary = aggregate_rows(rows)
+    summary = aggregate_rows(agg_rows)
     logger.info(
-        "Aggregated %d movie variants (%s) in %.1fs",
+        "Aggregated %d movie variants (%s) in %.1fs (%d/%d rows in live-cutoff window)",
         len(summary),
         mode,
         time.monotonic() - t0,
+        len(agg_rows),
+        len(rows),
     )
 
     if aggregates_only:
