@@ -171,6 +171,33 @@ async def ingest_rows(
                 "occupancy": c["occupancy"],
             })
 
+    # `norm_key` carries its own UNIQUE constraint, separate from the `slug`
+    # PK. ON CONFLICT (slug) only suppresses conflicts on the slug index — if
+    # two different slugs (within this batch, or one new vs. an existing DB
+    # row) claim the same norm_key, the INSERT still raises an uncaught
+    # IntegrityError and takes down the whole batch. Drop norm_key for
+    # whichever slug doesn't get to keep it.
+    candidate_norms = {rec["norm_key"] for rec in movies_by_slug.values() if rec["norm_key"]}
+    existing_owners: dict[str, str] = {}
+    if candidate_norms:
+        result = await db.execute(
+            text("SELECT slug, norm_key FROM movies WHERE norm_key = ANY(:norms)"),
+            {"norms": list(candidate_norms)},
+        )
+        existing_owners = {row.norm_key: row.slug for row in result}
+
+    claimed: dict[str, str] = {}
+    for slug_val, rec in movies_by_slug.items():
+        norm = rec["norm_key"]
+        if not norm:
+            continue
+        existing_owner = existing_owners.get(norm)
+        if existing_owner and existing_owner != slug_val:
+            rec["norm_key"] = None
+            continue
+        if claimed.setdefault(norm, slug_val) != slug_val:
+            rec["norm_key"] = None
+
     movie_list = list(movies_by_slug.values())
     await _batch_upsert(
         db, Movie, movie_list, ["slug"], ["norm_key", "last_updated"]
