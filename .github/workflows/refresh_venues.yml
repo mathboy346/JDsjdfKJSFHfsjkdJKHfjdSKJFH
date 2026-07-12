@@ -1,0 +1,49 @@
+# Manual: workflow_dispatch (triggered by the Heroku scheduler, same pattern as
+# pipeline_a.yml/pipeline_b.yml — see bh's backend/scheduler.py).
+name: Refresh Venues
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-venues
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Crawl BMS catalog and regenerate venue shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run venue refresh
+        env:
+          DATABASE_URL: ${{ secrets.PIPE_DSN }}
+        run: python -m backend.jobs.refresh_venues
+
+      - name: Commit and push updated venue shards
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add backend/data/v1.json backend/data/v2.json backend/data/v3.json backend/data/v4.json \
+                  backend/data/v5.json backend/data/v6.json backend/data/v7.json backend/data/v8.json
+          if git diff --cached --quiet; then
+            echo "No venue changes — skipping commit."
+          else
+            git commit -m "Refresh venue shards from live BMS catalog crawl"
+            git push
+          fi
