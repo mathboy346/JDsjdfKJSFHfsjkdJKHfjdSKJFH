@@ -17,22 +17,31 @@ import asyncio
 import json
 import logging
 import os
+import random
 import sys
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 
 from sqlalchemy import select, func
 
-from backend.scrapers.venue_catalog import fetch_city_catalog, extract_venues
-from backend.scrapers.sharded.paths import SHARD_COUNT
+from backend.scrapers.venue_catalog import fetch_city_catalog, extract_venues, reset_identity_on_failure
+from backend.scrapers.sharded.paths import SHARD_COUNT, MAX_RECOVERY_ROUNDS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s — %(message)s")
 logger = logging.getLogger(__name__)
 
 _DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 CITIES_FILE = os.path.join(_DATA_DIR, "citiesbms.json")
-CATALOG_WORKERS = int(os.environ.get("VENUE_REFRESH_CONCURRENCY", "10"))
+# This job runs on a single GH Actions runner (one IP), unlike the main byvenue
+# scraper which spreads across 8 separate runners — keep concurrency modest so
+# one runner's request burst doesn't trip rate-limiting on its own.
+CATALOG_WORKERS = int(os.environ.get("VENUE_REFRESH_CONCURRENCY", "5"))
 PRUNE_AFTER_DAYS = int(os.environ.get("VENUE_PRUNE_AFTER_DAYS", "21"))
+# Backoff before each retry round: 15s, 30s, 60s, 120s, 240s (capped).
+RETRY_BACKOFF_BASE_SECONDS = 15
+RETRY_BACKOFF_CAP_SECONDS = 240
 
 
 def _venue_path(sid: int) -> str:
@@ -48,21 +57,82 @@ def load_existing_venues() -> dict[str, dict]:
     return merged
 
 
-def _fetch_city_sync(city: dict) -> dict[str, dict]:
+def _fetch_city_sync(city: dict) -> tuple[dict[str, dict], bool]:
+    """Returns (discovered_venues, success). A city with no RegionSlug isn't a
+    failure — there's nothing to fetch — so it's reported as success with no
+    venues, and never gets retried."""
     slug = city.get("RegionSlug", "")
     if not slug:
-        return {}
-    data = fetch_city_catalog(slug)
-    if not data:
-        return {}
-    return extract_venues(data, city.get("RegionName", ""), city.get("StateName", ""))
+        return {}, True
+    try:
+        data = fetch_city_catalog(slug)
+    except Exception as e:
+        logger.warning("Fetch failed for %s: %s: %s", slug, type(e).__name__, e)
+        reset_identity_on_failure()
+        return {}, False
+    return extract_venues(data, city.get("RegionName", ""), city.get("StateName", "")), True
 
 
 def crawl_all_cities(cities: list[dict]) -> dict[str, dict]:
+    """Crawl every city's catalog, retrying failures across up to
+    MAX_RECOVERY_ROUNDS rounds with exponential backoff between rounds — the
+    same retry-round shape the main byvenue scraper uses (runner.py), plus an
+    actual backoff delay before each round, since this job runs concurrent
+    requests from a single runner IP rather than the main scraper's one-request-
+    at-a-time-per-shard pattern, so it needs to actively back off to give any
+    rate-limit window time to clear rather than just immediately retrying."""
     discovered: dict[str, dict] = {}
-    with ThreadPoolExecutor(max_workers=CATALOG_WORKERS) as pool:
-        for result in pool.map(_fetch_city_sync, cities):
-            discovered.update(result)
+    remaining = list(cities)
+    lock = threading.Lock()
+
+    for round_num in range(MAX_RECOVERY_ROUNDS + 1):
+        if not remaining:
+            break
+
+        if round_num > 0:
+            backoff = min(
+                RETRY_BACKOFF_BASE_SECONDS * (2 ** (round_num - 1)),
+                RETRY_BACKOFF_CAP_SECONDS,
+            )
+            logger.info(
+                "Retry round %d/%d: backing off %ds before retrying %d cities...",
+                round_num, MAX_RECOVERY_ROUNDS, backoff, len(remaining),
+            )
+            time.sleep(backoff)
+
+        failed: list[dict] = []
+
+        def worker(city: dict) -> None:
+            venues, ok = _fetch_city_sync(city)
+            # Jittered delay per request, same spirit as runner.py's inter-request
+            # sleep — spreads this runner's request rate out instead of bursting.
+            time.sleep(random.uniform(0.3, 0.7))
+            with lock:
+                if ok:
+                    discovered.update(venues)
+                else:
+                    failed.append(city)
+
+        label = "initial pass" if round_num == 0 else f"retry round {round_num}"
+        logger.info(
+            "Crawling %d cities (%s, concurrency=%d)...",
+            len(remaining), label, CATALOG_WORKERS,
+        )
+        with ThreadPoolExecutor(max_workers=CATALOG_WORKERS) as pool:
+            list(pool.map(worker, remaining))
+
+        logger.info("%d/%d cities failed this round", len(failed), len(remaining))
+        remaining = failed
+
+    if remaining:
+        logger.warning(
+            "Giving up on %d cities after %d retry rounds (transient network/anti-bot "
+            "issue — these just won't contribute new venues this run, existing tracked "
+            "venues for these cities are untouched): %s",
+            len(remaining), MAX_RECOVERY_ROUNDS,
+            [c.get("RegionSlug") for c in remaining],
+        )
+
     return discovered
 
 
