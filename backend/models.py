@@ -34,8 +34,11 @@ class MovieVariant(Base):
 
 class CurrentAdvance(Base):
     __tablename__ = "current_advance"
+    # Composite PK (not variant_key alone) — T+1/T+2/T+3 rows for the same
+    # movie must coexist, since the advance window now scrapes 3 future dates
+    # every cycle instead of overwriting a single "tomorrow" row.
     variant_key = Column(String(400), primary_key=True)
-    date_for    = Column(Date, nullable=False)
+    date_for    = Column(Date, nullable=False, primary_key=True)
     shows       = Column(Integer, default=0)
     gross       = Column(Float, default=0)
     sold        = Column(Integer, default=0)

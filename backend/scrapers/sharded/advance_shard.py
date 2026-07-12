@@ -1,10 +1,13 @@
-"""Advance (T+1) shard scraper."""
+"""Advance (T+1..T+N) shard scraper. Which future date is picked per job run is
+controlled by the ADVANCE_DAY_OFFSET env var (default 1 = tomorrow) — see
+paths.advance_date_code()."""
 
 import json
 import sys
 
 from backend.scrapers.sharded.paths import (
     advance_date_code,
+    advance_day_offset,
     detailed_path,
     log_path,
     shard_id,
@@ -15,11 +18,12 @@ from backend.scrapers.sharded.runner import make_logger, save_detailed, scrape_s
 
 def main() -> int:
     sid = shard_id()
-    date_code = advance_date_code()
+    offset = advance_day_offset()
+    date_code = advance_date_code(offset)
     vpath = venues_path(sid)
 
     log = make_logger(log_path("advance", date_code, sid))
-    log(f"ADVANCE SHARD {sid} STARTED | date={date_code}")
+    log(f"ADVANCE SHARD {sid} STARTED | date={date_code} | day_offset={offset}")
 
     with open(vpath, encoding="utf-8") as f:
         venues = json.load(f)

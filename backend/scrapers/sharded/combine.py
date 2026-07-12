@@ -1,12 +1,13 @@
 """Combine shard detailed JSON files."""
 
 import argparse
+import glob
 import json
 import os
 import sys
 
 from backend.scrapers.parser import dedupe_rows
-from backend.scrapers.sharded.paths import SHARD_COUNT, advance_date_code, daily_date_code
+from backend.scrapers.sharded.paths import advance_date_code, daily_date_code
 
 
 def load_json(path: str) -> list[dict]:
@@ -41,16 +42,19 @@ def normalize_row(r: dict, date_code: str) -> dict:
 
 
 def combine_shards(input_dir: str, date_code: str) -> list[dict]:
+    """Merge every detailed*.json shard output found in input_dir. Glob-based
+    rather than a fixed shard-count loop since advance runs now emit one file
+    per (shard, day_offset) pair — the count varies by mode. Scoped to the
+    `detailed*` prefix (not a bare `*.json`) so a stale final_rows.json left
+    over in the same directory from a prior local run (run_shard_local.py
+    reuses one output dir per date_code across repeated invocations) never
+    gets re-ingested as if it were shard input."""
     all_rows: list[dict] = []
 
-    for i in range(1, SHARD_COUNT + 1):
-        path = os.path.join(input_dir, f"detailed{i}.json")
-        if not os.path.isfile(path):
-            alt = os.path.join(input_dir, f"detailed-{i}.json")
-            path = alt if os.path.isfile(alt) else path
+    for path in sorted(glob.glob(os.path.join(input_dir, "detailed*.json"))):
         data = load_json(path)
         if data:
-            print(f"detailed{i}.json -> {len(data)} rows", flush=True)
+            print(f"{os.path.basename(path)} -> {len(data)} rows", flush=True)
             all_rows.extend(data)
 
     print(f"Raw rows: {len(all_rows)}", flush=True)

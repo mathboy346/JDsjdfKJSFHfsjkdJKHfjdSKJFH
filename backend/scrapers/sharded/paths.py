@@ -41,8 +41,13 @@ def log_path(mode: str, date_code: str, sid: int | None = None) -> str:
     return os.path.join(log_dir, f"{prefix}{sid}.log")
 
 
-def advance_date_code() -> str:
-    return (datetime.now(IST) + timedelta(days=1)).strftime("%Y%m%d")
+def advance_day_offset() -> int:
+    return int(os.environ.get("ADVANCE_DAY_OFFSET", "1"))
+
+
+def advance_date_code(day_offset: int | None = None) -> str:
+    offset = day_offset if day_offset is not None else advance_day_offset()
+    return (datetime.now(IST) + timedelta(days=offset)).strftime("%Y%m%d")
 
 
 def daily_date_code() -> str:

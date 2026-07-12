@@ -6,7 +6,7 @@ import json
 import logging
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime
 
 from sqlalchemy.exc import DBAPIError
 
@@ -15,7 +15,6 @@ from backend.ingest import ingest_rows
 from backend.processors.aggregator import aggregate_rows
 from backend.scrapers.show_log import ingest_show_log
 
-IST = timezone(timedelta(hours=5, minutes=30))
 logger = logging.getLogger(__name__)
 INGEST_MAX_RETRIES = 5
 # Keep in sync with LIVE_CUTOFF_HOURS in the bh repo's
@@ -36,7 +35,7 @@ def _cutoff_rows_for_aggregation(rows: list[dict], mode: str) -> list[dict]:
     since ingest can run a few minutes after the scrape itself — minsLeft
     reflects the moment each row was actually captured.
 
-    Advance rows (mode="advance") cover tomorrow, which is entirely future —
+    Advance rows (mode="advance") cover T+1/T+2/T+3, all entirely future —
     no cutoff applies there, and those rows don't carry minsLeft at all.
     """
     if mode != "daily":
@@ -57,15 +56,23 @@ def _is_deadlock(exc: BaseException) -> bool:
     return False
 
 
-def _show_date_for_mode(mode: str):
-    now = datetime.now(IST)
-    if mode == "advance":
-        return (now + timedelta(days=1)).date()
-    return now.date()
+def _group_rows_by_date(rows: list[dict]) -> dict[date, list[dict]]:
+    """Split combined rows by their own `date` field (set at scrape time — see
+    runner.py's enrich()/daily_row_filter()) rather than assuming a single
+    global date. Daily mode always yields exactly one group (today); advance
+    mode now yields up to 3 (T+1/T+2/T+3), since a single pipeline run scrapes
+    the whole advance window."""
+    groups: dict[date, list[dict]] = {}
+    for r in rows:
+        raw = r.get("date")
+        if not raw:
+            continue
+        show_date = datetime.strptime(raw, "%Y%m%d").date()
+        groups.setdefault(show_date, []).append(r)
+    return groups
 
 
-async def _ingest_granular(rows: list[dict], mode: str) -> None:
-    show_date = _show_date_for_mode(mode)
+async def _ingest_granular(rows: list[dict], mode: str, show_date: date) -> None:
     t0 = time.monotonic()
     await ingest_show_log(None, rows, show_date=show_date)
     logger.info(
@@ -76,19 +83,20 @@ async def _ingest_granular(rows: list[dict], mode: str) -> None:
     )
 
 
-async def _ingest_aggregates(summary: dict, mode: str) -> None:
+async def _ingest_aggregates(summary: dict, mode: str, show_date: date) -> None:
     t0 = time.monotonic()
     for attempt in range(1, INGEST_MAX_RETRIES + 1):
         try:
             async with AsyncSessionLocal() as db:
-                await ingest_rows(db, summary, snap_type=mode)
+                await ingest_rows(db, summary, snap_type=mode, date_for=show_date)
             break
         except DBAPIError as exc:
             if _is_deadlock(exc) and attempt < INGEST_MAX_RETRIES:
                 delay = min(2 ** attempt, 30)
                 logger.warning(
-                    "Deadlock during %s ingest (attempt %d/%d), retrying in %ds",
+                    "Deadlock during %s/%s ingest (attempt %d/%d), retrying in %ds",
                     mode,
+                    show_date,
                     attempt,
                     INGEST_MAX_RETRIES,
                     delay,
@@ -98,10 +106,50 @@ async def _ingest_aggregates(summary: dict, mode: str) -> None:
             raise
 
     logger.info(
-        "%s aggregate ingest complete in %.1fs",
+        "%s/%s aggregate ingest complete in %.1fs",
         mode,
+        show_date,
         time.monotonic() - t0,
     )
+
+
+async def _ingest_one_date(
+    show_date: date,
+    date_rows: list[dict],
+    mode: str,
+    *,
+    granular_only: bool,
+    aggregates_only: bool,
+) -> None:
+    if granular_only:
+        logger.info("Loaded %d rows for granular ingest (%s/%s)", len(date_rows), mode, show_date)
+        await _ingest_granular(date_rows, mode, show_date)
+        return
+
+    agg_rows = _cutoff_rows_for_aggregation(date_rows, mode)
+    t0 = time.monotonic()
+    summary = aggregate_rows(agg_rows)
+    logger.info(
+        "Aggregated %d movie variants (%s/%s) in %.1fs (%d/%d rows in live-cutoff window)",
+        len(summary),
+        mode,
+        show_date,
+        time.monotonic() - t0,
+        len(agg_rows),
+        len(date_rows),
+    )
+
+    if aggregates_only:
+        await _ingest_aggregates(summary, mode, show_date)
+        return
+
+    # Full ingest: granular + aggregates in parallel (separate DB connections).
+    full_t0 = time.monotonic()
+    await asyncio.gather(
+        _ingest_granular(date_rows, mode, show_date),
+        _ingest_aggregates(summary, mode, show_date),
+    )
+    logger.info("Full %s/%s ingest finished in %.1fs", mode, show_date, time.monotonic() - full_t0)
 
 
 async def ingest_from_rows(
@@ -118,34 +166,19 @@ async def ingest_from_rows(
     if granular_only and aggregates_only:
         raise ValueError("Cannot set both --granular-only and --aggregates-only")
 
-    if granular_only:
-        logger.info("Loaded %d rows for granular ingest (%s)", len(rows), mode)
-        await _ingest_granular(rows, mode)
+    groups = _group_rows_by_date(rows)
+    if not groups:
+        logger.warning("No rows had a parseable `date` field — skipping")
         return
 
-    agg_rows = _cutoff_rows_for_aggregation(rows, mode)
-    t0 = time.monotonic()
-    summary = aggregate_rows(agg_rows)
-    logger.info(
-        "Aggregated %d movie variants (%s) in %.1fs (%d/%d rows in live-cutoff window)",
-        len(summary),
-        mode,
-        time.monotonic() - t0,
-        len(agg_rows),
-        len(rows),
-    )
-
-    if aggregates_only:
-        await _ingest_aggregates(summary, mode)
-        return
-
-    # Full ingest: granular + aggregates in parallel (separate DB connections).
-    full_t0 = time.monotonic()
-    await asyncio.gather(
-        _ingest_granular(rows, mode),
-        _ingest_aggregates(summary, mode),
-    )
-    logger.info("Full %s ingest finished in %.1fs", mode, time.monotonic() - full_t0)
+    for show_date in sorted(groups):
+        await _ingest_one_date(
+            show_date,
+            groups[show_date],
+            mode,
+            granular_only=granular_only,
+            aggregates_only=aggregates_only,
+        )
 
 
 async def main_async(

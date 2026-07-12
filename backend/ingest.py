@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import date as date_type, datetime, timedelta, timezone
 
 from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import insert
@@ -49,11 +49,15 @@ async def _batch_upsert(
 
 
 async def ingest_rows(
-    db: AsyncSession, rows: dict, snap_type: str
+    db: AsyncSession, rows: dict, snap_type: str, date_for: date_type
 ) -> None:
     """
     Upsert aggregated rows into DB. snap_type: 'advance' | 'daily'
     rows: output of aggregate_rows() — keys are variant_keys
+    date_for: the show date these rows belong to (daily: always today; advance:
+    whichever of T+1/T+2/T+3 the caller is ingesting — see
+    backend/jobs/ingest_combined.py, which groups rows by their own `date`
+    field rather than assuming a single global date).
     """
     from backend.models import (
         Movie, MovieVariant, CurrentAdvance, CurrentDaily,
@@ -62,7 +66,6 @@ async def ingest_rows(
     )
 
     now = datetime.now(IST)
-    date_for = (now + timedelta(days=1)).date() if snap_type == "advance" else now.date()
 
     await db.execute(
         text("SELECT pg_advisory_xact_lock(:id)"),
@@ -222,8 +225,14 @@ async def ingest_rows(
         "date_for", "shows", "gross", "sold", "total_seats", "venues", "cities",
         "fastfilling", "housefull", "occupancy", "nett_cr_est", "fetched_at",
     ]
+    # current_advance's PK is (variant_key, date_for) — T+1/T+2/T+3 rows for the
+    # same movie must coexist rather than overwrite each other. current_daily
+    # only ever holds "today", so variant_key alone is still its PK.
+    snap_index_elements = (
+        ["variant_key", "date_for"] if snap_type == "advance" else ["variant_key"]
+    )
     await _batch_upsert(
-        db, snap_model, snap_records, ["variant_key"], snap_update_cols
+        db, snap_model, snap_records, snap_index_elements, snap_update_cols
     )
 
     for i in range(0, len(hist_records), INGEST_BATCH_SIZE):

@@ -14,13 +14,14 @@ concurrency:
 
 jobs:
   shards:
-    name: Shard ${{ matrix.shard }}
+    name: Shard ${{ matrix.shard }} / T+${{ matrix.day_offset }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        day_offset: [1, 2, 3]
 
     steps:
       - name: Checkout
@@ -39,15 +40,16 @@ jobs:
       - name: Run shard
         env:
           SHARD_ID: ${{ matrix.shard }}
+          ADVANCE_DAY_OFFSET: ${{ matrix.day_offset }}
         run: |
           OUT=$(python -m backend.scrapers.sharded.advance_shard)
-          cp "$OUT" "detailed${{ matrix.shard }}.json"
+          cp "$OUT" "detailed-${{ matrix.shard }}-${{ matrix.day_offset }}.json"
 
       - name: Upload shard artifact
         uses: actions/upload-artifact@v4
         with:
-          name: detailed-${{ matrix.shard }}
-          path: detailed${{ matrix.shard }}.json
+          name: detailed-${{ matrix.shard }}-${{ matrix.day_offset }}
+          path: detailed-${{ matrix.shard }}-${{ matrix.day_offset }}.json
           retention-days: 1
 
   combine:
@@ -78,11 +80,7 @@ jobs:
       - name: Combine shards
         run: |
           mkdir -p combined
-          for i in 1 2 3 4 5 6 7 8; do
-            if [ -f "shard_data/detailed${i}.json" ]; then
-              cp "shard_data/detailed${i}.json" "combined/detailed${i}.json"
-            fi
-          done
+          cp shard_data/*.json combined/
           python -m backend.scrapers.sharded.combine \
             --mode advance \
             --input-dir combined \
