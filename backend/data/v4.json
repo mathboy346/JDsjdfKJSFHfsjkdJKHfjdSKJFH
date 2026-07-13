@@ -26,6 +26,7 @@
   "ABCR": {
     "AvailableFormats": "",
     "City": "Vijayawada",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.4859",
     "Longitude": "80.6828",
     "RegionCode": "VIJA",
@@ -590,6 +591,7 @@
   "CDWP": {
     "AvailableFormats": "",
     "City": "Surat",
+    "FirstTracked": "2026-07-14",
     "Latitude": "21.1957",
     "Longitude": "72.8598",
     "RegionCode": "SURT",
@@ -674,6 +676,7 @@
   "CLKP": {
     "AvailableFormats": "",
     "City": "Patna",
+    "FirstTracked": "2026-07-14",
     "Latitude": "25.6025",
     "Longitude": "85.1453",
     "RegionCode": "PATN",
@@ -710,6 +713,7 @@
   "CMRM": {
     "AvailableFormats": "",
     "City": "Rewa",
+    "FirstTracked": "2026-07-14",
     "Latitude": "24.6463",
     "Longitude": "81.5341",
     "RegionCode": "RWAA",
@@ -734,6 +738,7 @@
   "CNAD": {
     "AvailableFormats": "",
     "City": "Ahmedabad",
+    "FirstTracked": "2026-07-14",
     "Latitude": "23.163",
     "Longitude": "72.5399",
     "RegionCode": "AHD",
@@ -962,6 +967,7 @@
   "DCAA": {
     "AvailableFormats": "",
     "City": "Barabanki",
+    "FirstTracked": "2026-07-14",
     "Latitude": "26.9243",
     "Longitude": "81.1742",
     "RegionCode": "BARK",
@@ -1106,6 +1112,7 @@
   "EEBC": {
     "AvailableFormats": "",
     "City": "Greater Noida",
+    "FirstTracked": "2026-07-14",
     "Latitude": "28.464",
     "Longitude": "77.5078",
     "RegionCode": "NCR",
@@ -1322,6 +1329,7 @@
   "GDCP": {
     "AvailableFormats": "",
     "City": "Jaipur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "26.9355",
     "Longitude": "75.7919",
     "RegionCode": "JAIP",
@@ -1454,6 +1462,7 @@
   "HANS": {
     "AvailableFormats": "",
     "City": "Chalisgaon",
+    "FirstTracked": "2026-07-14",
     "Latitude": "20.4616",
     "Longitude": "74.9972",
     "RegionCode": "CHLS",
@@ -1982,6 +1991,7 @@
   "KTJG": {
     "AvailableFormats": "",
     "City": "Jaggampeta",
+    "FirstTracked": "2026-07-14",
     "Latitude": "17.1752",
     "Longitude": "82.0621",
     "RegionCode": "JAGG",
@@ -2186,6 +2196,7 @@
   "MCKT": {
     "AvailableFormats": "",
     "City": "Hyderabad",
+    "FirstTracked": "2026-07-14",
     "Latitude": "17.3696",
     "Longitude": "78.5396",
     "RegionCode": "HYD",
@@ -2594,6 +2605,7 @@
   "NTBT": {
     "AvailableFormats": "",
     "City": "Bantumilli",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.3719",
     "Longitude": "81.2702",
     "RegionCode": "BANT",
@@ -2666,6 +2678,7 @@
   "ONEG": {
     "AvailableFormats": "",
     "City": "Gurugram (Gurgaon)",
+    "FirstTracked": "2026-07-14",
     "Latitude": "28.4615",
     "Longitude": "77.0527",
     "RegionCode": "NCR",
@@ -4646,6 +4659,7 @@
   "YSPV": {
     "AvailableFormats": "",
     "City": "Vijayawada",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.5089",
     "Longitude": "80.6161",
     "RegionCode": "VIJA",

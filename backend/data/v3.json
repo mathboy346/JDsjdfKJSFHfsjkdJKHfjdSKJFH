@@ -134,6 +134,7 @@
   "AJCI": {
     "AvailableFormats": "",
     "City": "Chintamani",
+    "FirstTracked": "2026-07-14",
     "Latitude": "13.3946",
     "Longitude": "78.0505",
     "RegionCode": "CHTI",
@@ -338,6 +339,7 @@
   "ATHG": {
     "AvailableFormats": "",
     "City": "Gooty",
+    "FirstTracked": "2026-07-14",
     "Latitude": "15.116565",
     "Longitude": "77.63751",
     "RegionCode": "GOOT",
@@ -350,6 +352,7 @@
   "ATTK": {
     "AvailableFormats": "",
     "City": "Narsapur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.4412",
     "Longitude": "81.7032",
     "RegionCode": "NARP",
@@ -530,6 +533,7 @@
   "CCAZ": {
     "AvailableFormats": "",
     "City": "Kakinada",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.9573",
     "Longitude": "82.2365",
     "RegionCode": "KAKI",
@@ -662,6 +666,7 @@
   "CKPP": {
     "AvailableFormats": "",
     "City": "Pune",
+    "FirstTracked": "2026-07-14",
     "Latitude": "18.6373",
     "Longitude": "73.847",
     "RegionCode": "PUNE",
@@ -746,6 +751,7 @@
   "CNEV": {
     "AvailableFormats": "",
     "City": "Noida",
+    "FirstTracked": "2026-07-14",
     "Latitude": "28.5727",
     "Longitude": "77.3794",
     "RegionCode": "NCR",
@@ -1934,6 +1940,7 @@
   "KPGN": {
     "AvailableFormats": "",
     "City": "Guntakal",
+    "FirstTracked": "2026-07-14",
     "Latitude": "15.1665",
     "Longitude": "77.3779",
     "RegionCode": "GUNL",
@@ -1958,6 +1965,7 @@
   "KRVN": {
     "AvailableFormats": "",
     "City": "Vrindavan",
+    "FirstTracked": "2026-07-14",
     "Latitude": "18.0799",
     "Longitude": "80.8238",
     "RegionCode": "MATH",
@@ -2234,6 +2242,7 @@
   "MDCD": {
     "AvailableFormats": "",
     "City": "Ghaziabad",
+    "FirstTracked": "2026-07-14",
     "Latitude": "28.6835",
     "Longitude": "77.5174",
     "RegionCode": "NCR",
@@ -2462,6 +2471,7 @@
   "MTYA": {
     "AvailableFormats": "",
     "City": "Nandigama",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.7752",
     "Longitude": "80.2837",
     "RegionCode": "NDGM",
@@ -2522,6 +2532,7 @@
   "NCCI": {
     "AvailableFormats": "",
     "City": "Chhatrapati Sambhajinagar (Aurangabad)",
+    "FirstTracked": "2026-07-14",
     "Latitude": "19.8752",
     "Longitude": "75.354",
     "RegionCode": "AURA",
@@ -2666,6 +2677,7 @@
   "ONEB": {
     "AvailableFormats": "",
     "City": "Mumbai",
+    "FirstTracked": "2026-07-14",
     "Latitude": "18.9956",
     "Longitude": "72.8363",
     "RegionCode": "MUMBAI",
@@ -2714,6 +2726,7 @@
   "PCBV": {
     "AvailableFormats": "",
     "City": "Varanasi",
+    "FirstTracked": "2026-07-14",
     "Latitude": "25.4181",
     "Longitude": "82.8823",
     "RegionCode": "VAR",
@@ -3386,6 +3399,7 @@
   "RRTR": {
     "AvailableFormats": "",
     "City": "Roorkee",
+    "FirstTracked": "2026-07-14",
     "Latitude": "29.8809",
     "Longitude": "77.9252",
     "RegionCode": "HRDR",
@@ -3626,6 +3640,7 @@
   "SDCO": {
     "AvailableFormats": "",
     "City": "Gorakhpur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "26.3449",
     "Longitude": "83.3504",
     "RegionCode": "GRKP",
@@ -3782,6 +3797,7 @@
   "SKLZ": {
     "AvailableFormats": "",
     "City": "Surat",
+    "FirstTracked": "2026-07-14",
     "Latitude": "21.2299",
     "Longitude": "72.8058",
     "RegionCode": "SURT",
@@ -4022,6 +4038,7 @@
   "SRPH": {
     "AvailableFormats": "",
     "City": "Huzurnagar",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.89881",
     "Longitude": "79.87458",
     "RegionCode": "HUZU",
@@ -4274,6 +4291,7 @@
   "SYKA": {
     "AvailableFormats": "",
     "City": "Addanki",
+    "FirstTracked": "2026-07-14",
     "Latitude": "15.8061",
     "Longitude": "79.9758",
     "RegionCode": "ADKI",
@@ -4466,6 +4484,7 @@
   "VCSV": {
     "AvailableFormats": "",
     "City": "Vijayawada",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.4985",
     "Longitude": "80.6535",
     "RegionCode": "VIJA",

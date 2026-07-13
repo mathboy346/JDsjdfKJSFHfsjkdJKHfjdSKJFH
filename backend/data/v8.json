@@ -290,6 +290,7 @@
   "ASMA": {
     "AvailableFormats": "",
     "City": "Ahilyanagar (Ahmednagar)",
+    "FirstTracked": "2026-07-14",
     "Latitude": "19.0927",
     "Longitude": "74.7362",
     "RegionCode": "AHMED",
@@ -650,6 +651,7 @@
   "CJJB": {
     "AvailableFormats": "",
     "City": "Jabalpur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "23.2455",
     "Longitude": "79.881",
     "RegionCode": "JABL",
@@ -1466,6 +1468,7 @@
   "HHJY": {
     "AvailableFormats": "",
     "City": "Salur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "18.51932",
     "Longitude": "83.19987",
     "RegionCode": "SALU",
@@ -1874,6 +1877,7 @@
   "KDCG": {
     "AvailableFormats": "",
     "City": "Guwahati",
+    "FirstTracked": "2026-07-14",
     "Latitude": "26.1789",
     "Longitude": "91.7423",
     "RegionCode": "GUW",
@@ -2018,6 +2022,7 @@
   "LETK": {
     "AvailableFormats": "",
     "City": "Kallakurichi",
+    "FirstTracked": "2026-07-14",
     "Latitude": "11.7347",
     "Longitude": "78.9634",
     "RegionCode": "ATTR",
@@ -2330,6 +2335,7 @@
   "MMLB": {
     "AvailableFormats": "",
     "City": "Bareilly",
+    "FirstTracked": "2026-07-14",
     "Latitude": "28.3485",
     "Longitude": "79.4179",
     "RegionCode": "BARE",
@@ -2678,6 +2684,7 @@
   "PAJA": {
     "AvailableFormats": "",
     "City": "Agra",
+    "FirstTracked": "2026-07-14",
     "Latitude": "27.2051",
     "Longitude": "78.0049",
     "RegionCode": "AGRA",
@@ -2702,6 +2709,7 @@
   "PCBB": {
     "AvailableFormats": "",
     "City": "Biaora",
+    "FirstTracked": "2026-07-14",
     "Latitude": "23.9174",
     "Longitude": "76.9178",
     "RegionCode": "BIAR",
@@ -2714,6 +2722,7 @@
   "PCEL": {
     "AvailableFormats": "",
     "City": "Delhi",
+    "FirstTracked": "2026-07-14",
     "Latitude": "28.6958",
     "Longitude": "77.1531",
     "RegionCode": "NCR",
@@ -3230,6 +3239,7 @@
   "RDCQ": {
     "AvailableFormats": "",
     "City": "Kolkata",
+    "FirstTracked": "2026-07-14",
     "Latitude": "22.6606",
     "Longitude": "88.3889",
     "RegionCode": "KOLK",
@@ -3638,6 +3648,7 @@
   "SDRJ": {
     "AvailableFormats": "",
     "City": "Devarapalli",
+    "FirstTracked": "2026-07-14",
     "Latitude": "17.0296",
     "Longitude": "81.5584",
     "RegionCode": "DVRP",
@@ -3650,6 +3661,7 @@
   "SDYU": {
     "AvailableFormats": "",
     "City": "Sihor",
+    "FirstTracked": "2026-07-14",
     "Latitude": "21.7153",
     "Longitude": "71.9601",
     "RegionCode": "BHNG",
@@ -3890,6 +3902,7 @@
   "SNCJ": {
     "AvailableFormats": "",
     "City": "Ballia",
+    "FirstTracked": "2026-07-14",
     "Latitude": "25.759",
     "Longitude": "84.1623",
     "RegionCode": "ALBI",
@@ -4586,6 +4599,7 @@
   "VVGT": {
     "AvailableFormats": "",
     "City": "Chennai",
+    "FirstTracked": "2026-07-14",
     "Latitude": "13.0359",
     "Longitude": "80.0462",
     "RegionCode": "CHEN",

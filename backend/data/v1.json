@@ -242,6 +242,7 @@
   "APNS": {
     "AvailableFormats": "",
     "City": "Hyderabad",
+    "FirstTracked": "2026-07-14",
     "Latitude": "17.2859",
     "Longitude": "78.4141",
     "RegionCode": "HYD",
@@ -338,6 +339,7 @@
   "ATEV": {
     "AvailableFormats": "",
     "City": "Salem",
+    "FirstTracked": "2026-07-14",
     "Latitude": "11.701",
     "Longitude": "78.2565",
     "RegionCode": "SALM",
@@ -566,6 +568,7 @@
   "CCPF": {
     "AvailableFormats": "",
     "City": "Agra",
+    "FirstTracked": "2026-07-14",
     "Latitude": "27.2062",
     "Longitude": "77.9727",
     "RegionCode": "AGRA",
@@ -614,6 +617,7 @@
   "CGCO": {
     "AvailableFormats": "",
     "City": "Olpad",
+    "FirstTracked": "2026-07-14",
     "Latitude": "21.328",
     "Longitude": "72.7558",
     "RegionCode": "SURT",
@@ -770,6 +774,7 @@
   "CNTX": {
     "AvailableFormats": "",
     "City": "Thane",
+    "FirstTracked": "2026-07-14",
     "Latitude": "19.1927",
     "Longitude": "72.9686",
     "RegionCode": "MUMBAI",
@@ -926,6 +931,7 @@
   "CUNT": {
     "AvailableFormats": "",
     "City": "Delhi",
+    "FirstTracked": "2026-07-14",
     "Latitude": "28.5928",
     "Longitude": "77.0407",
     "RegionCode": "NCR",
@@ -1106,6 +1112,7 @@
   "ECVP": {
     "AvailableFormats": "",
     "City": "Vapi",
+    "FirstTracked": "2026-07-14",
     "Latitude": "20.412039",
     "Longitude": "72.91532",
     "RegionCode": "DAMA",
@@ -1778,6 +1785,7 @@
   "JSCH": {
     "AvailableFormats": "",
     "City": "Haldwani",
+    "FirstTracked": "2026-07-14",
     "Latitude": "29.2267",
     "Longitude": "79.4217",
     "RegionCode": "HALD",
@@ -1826,6 +1834,7 @@
   "JVCM": {
     "AvailableFormats": "",
     "City": "Mathura",
+    "FirstTracked": "2026-07-14",
     "Latitude": "27.383",
     "Longitude": "77.6911",
     "RegionCode": "MATH",
@@ -2234,6 +2243,7 @@
   "MCXF": {
     "AvailableFormats": "",
     "City": "Chennai",
+    "FirstTracked": "2026-07-14",
     "Latitude": "13.1206",
     "Longitude": "80.0979",
     "RegionCode": "CHEN",
@@ -2822,6 +2832,7 @@
   "PICS": {
     "AvailableFormats": "",
     "City": "Surat",
+    "FirstTracked": "2026-07-14",
     "Latitude": "21.2544",
     "Longitude": "72.8853",
     "RegionCode": "SURT",
@@ -2858,6 +2869,7 @@
   "PLAT": {
     "AvailableFormats": "",
     "City": "Attur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "11.5989",
     "Longitude": "78.5971",
     "RegionCode": "ATTR",
@@ -3818,6 +3830,7 @@
   "SLKA": {
     "AvailableFormats": "",
     "City": "Draksharamam",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.7944",
     "Longitude": "82.0572",
     "RegionCode": "DAKR",
@@ -3854,6 +3867,7 @@
   "SMEM": {
     "AvailableFormats": "",
     "City": "Memari",
+    "FirstTracked": "2026-07-14",
     "Latitude": "23.1769",
     "Longitude": "88.0929",
     "RegionCode": "BURD",
@@ -4046,6 +4060,7 @@
   "SRUK": {
     "AvailableFormats": "",
     "City": "Belur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "13.1693",
     "Longitude": "75.8677",
     "RegionCode": "BELU",
@@ -4082,6 +4097,7 @@
   "SSMB": {
     "AvailableFormats": "",
     "City": "Bhimadole",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.8201",
     "Longitude": "81.2598",
     "RegionCode": "BMDE",
@@ -4178,6 +4194,7 @@
   "STWD": {
     "AvailableFormats": "",
     "City": "Chamarajnagar",
+    "FirstTracked": "2026-07-14",
     "Latitude": "11.9152",
     "Longitude": "76.9418",
     "RegionCode": "CHAJ",
@@ -4226,6 +4243,7 @@
   "SVKZ": {
     "AvailableFormats": "",
     "City": "Bendamurulanka",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.4443",
     "Longitude": "81.9832",
     "RegionCode": "AMAP",
@@ -4478,6 +4496,7 @@
   "VEAN": {
     "AvailableFormats": "",
     "City": "Patna",
+    "FirstTracked": "2026-07-14",
     "Latitude": "25.6049",
     "Longitude": "85.1385",
     "RegionCode": "PATN",
@@ -4502,6 +4521,7 @@
   "VJHS": {
     "AvailableFormats": "",
     "City": "Pune",
+    "FirstTracked": "2026-07-14",
     "Latitude": "18.5875",
     "Longitude": "73.7008",
     "RegionCode": "PUNE",
@@ -4526,6 +4546,7 @@
   "VMAH": {
     "AvailableFormats": "",
     "City": "Attur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "11.5995",
     "Longitude": "78.6001",
     "RegionCode": "ATTR",
@@ -4538,6 +4559,7 @@
   "VNMK": {
     "AvailableFormats": "",
     "City": "Malikipuram",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.4094",
     "Longitude": "81.8051",
     "RegionCode": "MALK",

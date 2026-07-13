@@ -2,6 +2,7 @@
   "AACS": {
     "AvailableFormats": "",
     "City": "Salem",
+    "FirstTracked": "2026-07-14",
     "Latitude": "11.6699",
     "Longitude": "78.0181",
     "RegionCode": "SALM",
@@ -446,6 +447,7 @@
   "BKTL": {
     "AvailableFormats": "",
     "City": "Cherukupalli",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.0529",
     "Longitude": "80.6789",
     "RegionCode": "EHRK",
@@ -530,6 +532,7 @@
   "CCBZ": {
     "AvailableFormats": "",
     "City": "Bathinda",
+    "FirstTracked": "2026-07-14",
     "Latitude": "30.2049",
     "Longitude": "74.95",
     "RegionCode": "BHAT",
@@ -566,6 +569,7 @@
   "CCRN": {
     "AvailableFormats": "",
     "City": "Chandrapur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "19.7872",
     "Longitude": "79.3843",
     "RegionCode": "CHAN",
@@ -662,6 +666,7 @@
   "CLBC": {
     "AvailableFormats": "",
     "City": "Muzaffarpur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "26.1112",
     "Longitude": "85.3656",
     "RegionCode": "MUZA",
@@ -686,6 +691,7 @@
   "CMBS": {
     "AvailableFormats": "",
     "City": "Bihar Sharif",
+    "FirstTracked": "2026-07-14",
     "Latitude": "25.2034",
     "Longitude": "85.5006",
     "RegionCode": "BIHS",
@@ -1022,6 +1028,7 @@
   "DLCS": {
     "AvailableFormats": "",
     "City": "Sujangarh",
+    "FirstTracked": "2026-07-14",
     "Latitude": "27.709246",
     "Longitude": "74.46495",
     "RegionCode": "SJNG",
@@ -1838,6 +1845,7 @@
   "KAGY": {
     "AvailableFormats": "",
     "City": "Jaggayyapeta",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.8928",
     "Longitude": "80.1012",
     "RegionCode": "JGGY",
@@ -1934,6 +1942,7 @@
   "KPSG": {
     "AvailableFormats": "",
     "City": "Gooty",
+    "FirstTracked": "2026-07-14",
     "Latitude": "15.110157",
     "Longitude": "77.63626",
     "RegionCode": "GOOT",
@@ -1982,6 +1991,7 @@
   "KTKT": {
     "AvailableFormats": "",
     "City": "Hyderabad",
+    "FirstTracked": "2026-07-14",
     "Latitude": "17.3888",
     "Longitude": "78.4962",
     "RegionCode": "HYD",
@@ -2174,6 +2184,7 @@
   "MCIX": {
     "AvailableFormats": "",
     "City": "Greater Noida",
+    "FirstTracked": "2026-07-14",
     "Latitude": "28.4574",
     "Longitude": "77.4993",
     "RegionCode": "NCR",
@@ -2426,6 +2437,7 @@
   "MTCV": {
     "AvailableFormats": "",
     "City": "Gurugram (Gurgaon)",
+    "FirstTracked": "2026-07-14",
     "Latitude": "28.5364",
     "Longitude": "77.0185",
     "RegionCode": "NCR",
@@ -2438,6 +2450,7 @@
   "MTKV": {
     "AvailableFormats": "",
     "City": "Kavali",
+    "FirstTracked": "2026-07-14",
     "Latitude": "14.9202",
     "Longitude": "79.9899",
     "RegionCode": "KVLI",
@@ -2498,6 +2511,7 @@
   "MYEP": {
     "AvailableFormats": "",
     "City": "Patratu",
+    "FirstTracked": "2026-07-14",
     "Latitude": "23.5892",
     "Longitude": "85.269",
     "RegionCode": "RANC",
@@ -2690,6 +2704,7 @@
   "PAYT": {
     "AvailableFormats": "",
     "City": "Amravati",
+    "FirstTracked": "2026-07-14",
     "Latitude": "20.931",
     "Longitude": "77.7555",
     "RegionCode": "AMRA",
@@ -2894,6 +2909,7 @@
   "PMTN": {
     "AvailableFormats": "",
     "City": "Delhi",
+    "FirstTracked": "2026-07-14",
     "Latitude": "28.6634",
     "Longitude": "77.1535",
     "RegionCode": "NCR",
@@ -3050,6 +3066,7 @@
   "PVCP": {
     "AvailableFormats": "",
     "City": "Pimpalner",
+    "FirstTracked": "2026-07-14",
     "Latitude": "20.940186",
     "Longitude": "74.11832",
     "RegionCode": "PPAL",
@@ -4166,6 +4183,7 @@
   "STTY": {
     "AvailableFormats": "",
     "City": "Guntur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.2968",
     "Longitude": "80.4475",
     "RegionCode": "GUNT",
@@ -4262,6 +4280,7 @@
   "SXTP": {
     "AvailableFormats": "",
     "City": "Beguniapada",
+    "FirstTracked": "2026-07-14",
     "Latitude": "19.6342",
     "Longitude": "84.9884",
     "RegionCode": "BEGU",

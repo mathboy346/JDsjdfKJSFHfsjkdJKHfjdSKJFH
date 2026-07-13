@@ -362,6 +362,7 @@
   "AVMT": {
     "AvailableFormats": "",
     "City": "Chennai",
+    "FirstTracked": "2026-07-14",
     "Latitude": "13.3341",
     "Longitude": "79.8884",
     "RegionCode": "CHEN",
@@ -458,6 +459,7 @@
   "BMMB": {
     "AvailableFormats": "",
     "City": "Gudivada",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.4387",
     "Longitude": "80.9925",
     "RegionCode": "GUDI",
@@ -518,6 +520,7 @@
   "CBWC": {
     "AvailableFormats": "",
     "City": "Biswanath Chariali",
+    "FirstTracked": "2026-07-14",
     "Latitude": "26.7412",
     "Longitude": "93.1505",
     "RegionCode": "BICH",
@@ -626,6 +629,7 @@
   "CHSX": {
     "AvailableFormats": "",
     "City": "Patna",
+    "FirstTracked": "2026-07-14",
     "Latitude": "25.5698",
     "Longitude": "84.8705",
     "RegionCode": "PATN",
@@ -650,6 +654,7 @@
   "CIXH": {
     "AvailableFormats": "",
     "City": "Ahmedabad",
+    "FirstTracked": "2026-07-14",
     "Latitude": "23.0902",
     "Longitude": "72.5297",
     "RegionCode": "AHD",
@@ -686,6 +691,7 @@
   "CMBW": {
     "AvailableFormats": "",
     "City": "Bankura",
+    "FirstTracked": "2026-07-14",
     "Latitude": "23.2527",
     "Longitude": "87.0263",
     "RegionCode": "BNKU",
@@ -710,6 +716,7 @@
   "CMSN": {
     "AvailableFormats": "",
     "City": "Agra",
+    "FirstTracked": "2026-07-14",
     "Latitude": "27.2032",
     "Longitude": "77.9671",
     "RegionCode": "AGRA",
@@ -914,6 +921,7 @@
   "CUDN": {
     "AvailableFormats": "",
     "City": "Nagpur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "20.8422",
     "Longitude": "79.3181",
     "RegionCode": "NAGP",
@@ -926,6 +934,7 @@
   "CVMU": {
     "AvailableFormats": "",
     "City": "Hyderabad",
+    "FirstTracked": "2026-07-14",
     "Latitude": "17.402",
     "Longitude": "78.5719",
     "RegionCode": "HYD",
@@ -1082,6 +1091,7 @@
   "DXEC": {
     "AvailableFormats": "",
     "City": "Ottapalam",
+    "FirstTracked": "2026-07-14",
     "Latitude": "10.7413",
     "Longitude": "76.3901",
     "RegionCode": "THSR",
@@ -1406,6 +1416,7 @@
   "GSEE": {
     "AvailableFormats": "",
     "City": "Baikunthpur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "23.2686",
     "Longitude": "82.5548",
     "RegionCode": "BKTH",
@@ -2174,6 +2185,7 @@
   "MCJH": {
     "AvailableFormats": "",
     "City": "Junagarh",
+    "FirstTracked": "2026-07-14",
     "Latitude": "19.862988",
     "Longitude": "82.943504",
     "RegionCode": "JUNA",
@@ -2258,6 +2270,7 @@
   "MGMF": {
     "AvailableFormats": "",
     "City": "Dhuri",
+    "FirstTracked": "2026-07-14",
     "Latitude": "30.3649",
     "Longitude": "75.8591",
     "RegionCode": "DHRI",
@@ -2306,6 +2319,7 @@
   "MLDP": {
     "AvailableFormats": "",
     "City": "Dehradun",
+    "FirstTracked": "2026-07-14",
     "Latitude": "30.289",
     "Longitude": "77.9991",
     "RegionCode": "DEH",
@@ -2342,6 +2356,7 @@
   "MMPR": {
     "AvailableFormats": "",
     "City": "Chennai",
+    "FirstTracked": "2026-07-14",
     "Latitude": "13.1017",
     "Longitude": "80.2747",
     "RegionCode": "CHEN",
@@ -2402,6 +2417,7 @@
   "MSCA": {
     "AvailableFormats": "",
     "City": "Amroha",
+    "FirstTracked": "2026-07-14",
     "Latitude": "28.897",
     "Longitude": "78.4729",
     "RegionCode": "AMRO",
@@ -3134,6 +3150,7 @@
   "RAKK": {
     "AvailableFormats": "",
     "City": "Chennai",
+    "FirstTracked": "2026-07-14",
     "Latitude": "12.7539",
     "Longitude": "80.206",
     "RegionCode": "CHET",
@@ -3818,6 +3835,7 @@
   "SLSM": {
     "AvailableFormats": "",
     "City": "Channapatna",
+    "FirstTracked": "2026-07-14",
     "Latitude": "12.6585",
     "Longitude": "77.2046",
     "RegionCode": "CPTN",
@@ -3914,6 +3932,7 @@
   "SNMK": {
     "AvailableFormats": "",
     "City": "Ramanagara",
+    "FirstTracked": "2026-07-14",
     "Latitude": "12.719403",
     "Longitude": "77.27453",
     "RegionCode": "RANG",
@@ -4166,6 +4185,7 @@
   "STUK": {
     "AvailableFormats": "",
     "City": "Kuppam",
+    "FirstTracked": "2026-07-14",
     "Latitude": "12.7459",
     "Longitude": "78.3437",
     "RegionCode": "KUPP",
@@ -4418,6 +4438,7 @@
   "VATB": {
     "AvailableFormats": "",
     "City": "Bhadravati",
+    "FirstTracked": "2026-07-14",
     "Latitude": "13.8491",
     "Longitude": "75.7033",
     "RegionCode": "BDVT",

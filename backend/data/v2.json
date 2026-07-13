@@ -50,6 +50,7 @@
   "ACBD": {
     "AvailableFormats": "",
     "City": "Basantpur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "26.1698",
     "Longitude": "84.6684",
     "RegionCode": "BABA",
@@ -590,6 +591,7 @@
   "CDRT": {
     "AvailableFormats": "",
     "City": "Dharmajigudem",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.8857",
     "Longitude": "80.9918",
     "RegionCode": "ELRU",
@@ -686,6 +688,7 @@
   "CLTP": {
     "AvailableFormats": "",
     "City": "Pune",
+    "FirstTracked": "2026-07-14",
     "Latitude": "18.4768",
     "Longitude": "73.9083",
     "RegionCode": "PUNE",
@@ -722,6 +725,7 @@
   "CMUA": {
     "AvailableFormats": "",
     "City": "Howrah",
+    "FirstTracked": "2026-07-14",
     "Latitude": "22.4874",
     "Longitude": "88.1111",
     "RegionCode": "HWRH",
@@ -866,6 +870,7 @@
   "CSAN": {
     "AvailableFormats": "",
     "City": "Ahmedabad",
+    "FirstTracked": "2026-07-14",
     "Latitude": "22.9638",
     "Longitude": "72.5911",
     "RegionCode": "AHD",
@@ -1058,6 +1063,7 @@
   "DRCR": {
     "AvailableFormats": "",
     "City": "Mansa",
+    "FirstTracked": "2026-07-14",
     "Latitude": "30.020473",
     "Longitude": "75.39797",
     "RegionCode": "MNSA",
@@ -1466,6 +1472,7 @@
   "HFLM": {
     "AvailableFormats": "",
     "City": "Margao",
+    "FirstTracked": "2026-07-14",
     "Latitude": "15.2715",
     "Longitude": "73.9686",
     "RegionCode": "MARG",
@@ -2090,6 +2097,7 @@
   "MAAM": {
     "AvailableFormats": "",
     "City": "Ahmedabad",
+    "FirstTracked": "2026-07-14",
     "Latitude": "22.9973",
     "Longitude": "72.5927",
     "RegionCode": "AHD",
@@ -2234,6 +2242,7 @@
   "MDCA": {
     "AvailableFormats": "",
     "City": "Anjar",
+    "FirstTracked": "2026-07-14",
     "Latitude": "23.101",
     "Longitude": "70.0353",
     "RegionCode": "ANJR",
@@ -2450,6 +2459,7 @@
   "MTMT": {
     "AvailableFormats": "",
     "City": "Madurai",
+    "FirstTracked": "2026-07-14",
     "Latitude": "10.0232",
     "Longitude": "77.9631",
     "RegionCode": "MADU",
@@ -2594,6 +2604,7 @@
   "NSTR": {
     "AvailableFormats": "",
     "City": "Attur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "11.6009",
     "Longitude": "78.5975",
     "RegionCode": "ATTR",
@@ -2642,6 +2653,7 @@
   "NYDU": {
     "AvailableFormats": "",
     "City": "Ghaziabad",
+    "FirstTracked": "2026-07-14",
     "Latitude": "28.7009",
     "Longitude": "77.4213",
     "RegionCode": "NCR",
@@ -2666,6 +2678,7 @@
   "ONEA": {
     "AvailableFormats": "",
     "City": "Akola",
+    "FirstTracked": "2026-07-14",
     "Latitude": "20.6937",
     "Longitude": "76.9856",
     "RegionCode": "AKOL",
@@ -3422,6 +3435,7 @@
   "RTSR": {
     "AvailableFormats": "",
     "City": "Raipur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "21.2439",
     "Longitude": "81.6374",
     "RegionCode": "RAIPUR",
@@ -3434,6 +3448,7 @@
   "RVCV": {
     "AvailableFormats": "",
     "City": "Gurugram (Gurgaon)",
+    "FirstTracked": "2026-07-14",
     "Latitude": "28.4667",
     "Longitude": "76.9695",
     "RegionCode": "NCR",
@@ -3506,6 +3521,7 @@
   "SBHD": {
     "AvailableFormats": "",
     "City": "Ambajipeta",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.5934",
     "Longitude": "81.9485",
     "RegionCode": "AMAP",
@@ -3950,6 +3966,7 @@
   "SPCU": {
     "AvailableFormats": "",
     "City": "Ishwarpur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "17.0475",
     "Longitude": "74.2576",
     "RegionCode": "ASMA",
@@ -4106,6 +4123,7 @@
   "SSVD": {
     "AvailableFormats": "",
     "City": "Nagaram (AP)",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.0048",
     "Longitude": "80.7229",
     "RegionCode": "BATT",
@@ -4238,6 +4256,7 @@
   "SVRX": {
     "AvailableFormats": "",
     "City": "Roorkee",
+    "FirstTracked": "2026-07-14",
     "Latitude": "29.8668",
     "Longitude": "77.8881",
     "RegionCode": "HRDR",
@@ -4430,6 +4449,7 @@
   "VBCZ": {
     "AvailableFormats": "",
     "City": "Ambalapuzha",
+    "FirstTracked": "2026-07-14",
     "Latitude": "9.38619",
     "Longitude": "76.3556",
     "RegionCode": "ALPZ",
@@ -4466,6 +4486,7 @@
   "VCSR": {
     "AvailableFormats": "",
     "City": "Gudur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "14.149236",
     "Longitude": "79.84692",
     "RegionCode": "GUDR",
@@ -4502,6 +4523,7 @@
   "VJMB": {
     "AvailableFormats": "",
     "City": "Bavla",
+    "FirstTracked": "2026-07-14",
     "Latitude": "22.84",
     "Longitude": "72.3682",
     "RegionCode": "BAVL",
@@ -4610,6 +4632,7 @@
   "WATG": {
     "AvailableFormats": "",
     "City": "Greater Noida",
+    "FirstTracked": "2026-07-14",
     "Latitude": "28.4776",
     "Longitude": "77.5233",
     "RegionCode": "NCR",
@@ -4646,6 +4669,7 @@
   "YMCY": {
     "AvailableFormats": "",
     "City": "Ahmedabad",
+    "FirstTracked": "2026-07-14",
     "Latitude": "23.0048",
     "Longitude": "72.5014",
     "RegionCode": "AHD",

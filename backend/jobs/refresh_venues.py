@@ -177,29 +177,49 @@ async def build_refreshed_venue_map() -> tuple[dict[str, dict], int, int]:
     new_codes = set(discovered) - set(existing)
     absent_codes = set(existing) - set(discovered)
 
+    # Grace period: a venue added within the last PRUNE_AFTER_DAYS days hasn't
+    # necessarily been scraped by the byvenue scraper even once yet (it only
+    # started being visited once THIS run's updated venue list ships), so it
+    # has no bms_show_log history to prove itself with — without this, a
+    # newly-added venue that a later run's (variance-prone) catalog crawl
+    # simply doesn't happen to re-discover would look identical to a
+    # genuinely dead one and get pruned before it ever had a fair chance.
+    # Confirmed happening in practice: 485 venues added in one run, several
+    # pruned again in the very next one purely because that run's crawl
+    # didn't re-find them, despite being real, current listings.
+    today_iso = date.today().isoformat()
+    cutoff_iso = (date.today() - timedelta(days=PRUNE_AFTER_DAYS)).isoformat()
+
+    def _in_grace_period(code: str) -> bool:
+        first_tracked = existing[code].get("FirstTracked")
+        return bool(first_tracked) and first_tracked >= cutoff_iso
+
     # Only consider pruning venues BMS's own catalog no longer lists — then require
     # they've also produced zero scraped shows recently before actually dropping
     # them, so a venue that's merely between releases this week (and so missing
     # from this week's "what's showing" catalog crawl) never gets removed just for
     # that; it only goes if it's ALSO been silent for weeks in our own scrape data.
     since = date.today() - timedelta(days=PRUNE_AFTER_DAYS)
-    absent_names = {existing[c]["VenueName"] for c in absent_codes if existing[c].get("VenueName")}
+    prune_candidates = {c for c in absent_codes if not _in_grace_period(c)}
+    absent_names = {existing[c]["VenueName"] for c in prune_candidates if existing[c].get("VenueName")}
     active_names = await _venues_with_recent_shows(absent_names, since)
     prune_codes = {
-        c for c in absent_codes
+        c for c in prune_candidates
         if existing[c].get("VenueName") not in active_names
     }
+    protected_new = len(absent_codes) - len(prune_candidates)
 
     logger.info(
-        "New venues to add: %d | Absent from catalog: %d | Pruning (silent %d+ days too): %d",
-        len(new_codes), len(absent_codes), PRUNE_AFTER_DAYS, len(prune_codes),
+        "New venues to add: %d | Absent from catalog: %d (%d in grace period, protected) | "
+        "Pruning (silent %d+ days too): %d",
+        len(new_codes), len(absent_codes), protected_new, PRUNE_AFTER_DAYS, len(prune_codes),
     )
 
     final = dict(existing)
     for c in prune_codes:
         del final[c]
     for c in new_codes:
-        final[c] = discovered[c]
+        final[c] = {**discovered[c], "FirstTracked": today_iso}
 
     return final, len(new_codes), len(prune_codes)
 

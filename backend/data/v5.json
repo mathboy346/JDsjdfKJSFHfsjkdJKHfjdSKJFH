@@ -326,6 +326,7 @@
   "ATAM": {
     "AvailableFormats": "",
     "City": "Batlagundu",
+    "FirstTracked": "2026-07-14",
     "Latitude": "10.2275",
     "Longitude": "77.7483",
     "RegionCode": "BTGD",
@@ -542,6 +543,7 @@
   "CCKN": {
     "AvailableFormats": "",
     "City": "Nagpur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "21.0532",
     "Longitude": "79.0626",
     "RegionCode": "NAGP",
@@ -818,6 +820,7 @@
   "CPMF": {
     "AvailableFormats": "",
     "City": "Faridabad",
+    "FirstTracked": "2026-07-14",
     "Latitude": "28.3874",
     "Longitude": "77.312",
     "RegionCode": "NCR",
@@ -1118,6 +1121,7 @@
   "EMPN": {
     "AvailableFormats": "",
     "City": "Pulgaon",
+    "FirstTracked": "2026-07-14",
     "Latitude": "20.725908",
     "Longitude": "78.31447",
     "RegionCode": "PUON",
@@ -2342,6 +2346,7 @@
   "MMMZ": {
     "AvailableFormats": "",
     "City": "Chickmagaluru",
+    "FirstTracked": "2026-07-14",
     "Latitude": "13.3173",
     "Longitude": "75.7707",
     "RegionCode": "CHKA",
@@ -2366,6 +2371,7 @@
   "MNJL": {
     "AvailableFormats": "",
     "City": "Ludhiana",
+    "FirstTracked": "2026-07-14",
     "Latitude": "30.8963",
     "Longitude": "75.8665",
     "RegionCode": "LUDH",
@@ -3338,6 +3344,7 @@
   "RMTG": {
     "AvailableFormats": "",
     "City": "Tirunelveli",
+    "FirstTracked": "2026-07-14",
     "Latitude": "8.74097",
     "Longitude": "77.7136",
     "RegionCode": "TIRV",
@@ -3374,6 +3381,7 @@
   "RRGB": {
     "AvailableFormats": "",
     "City": "Chennai",
+    "FirstTracked": "2026-07-14",
     "Latitude": "13.1429",
     "Longitude": "79.9104",
     "RegionCode": "ARAK",
@@ -3542,6 +3550,7 @@
   "SCGL": {
     "AvailableFormats": "",
     "City": "Gandhidham",
+    "FirstTracked": "2026-07-14",
     "Latitude": "23.1249",
     "Longitude": "70.1037",
     "RegionCode": "ADPR",
@@ -3554,6 +3563,7 @@
   "SCJM": {
     "AvailableFormats": "",
     "City": "Durgapur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "23.5391",
     "Longitude": "87.2911",
     "RegionCode": "DURGA",
@@ -3614,6 +3624,7 @@
   "SCXP": {
     "AvailableFormats": "",
     "City": "Palakollu",
+    "FirstTracked": "2026-07-14",
     "Latitude": "16.5152",
     "Longitude": "81.7257",
     "RegionCode": "PLKL",
@@ -3638,6 +3649,7 @@
   "SDPN": {
     "AvailableFormats": "",
     "City": "Narasannapeta",
+    "FirstTracked": "2026-07-14",
     "Latitude": "18.41426",
     "Longitude": "84.03931",
     "RegionCode": "NRPT",
@@ -3746,6 +3758,7 @@
   "SIPA": {
     "AvailableFormats": "",
     "City": "Varanasi",
+    "FirstTracked": "2026-07-14",
     "Latitude": "25.3165",
     "Longitude": "82.9902",
     "RegionCode": "VAR",
@@ -3914,6 +3927,7 @@
   "SNKM": {
     "AvailableFormats": "",
     "City": "Pandharpur",
+    "FirstTracked": "2026-07-14",
     "Latitude": "17.86936",
     "Longitude": "75.28637",
     "RegionCode": "PNDH",
@@ -4574,6 +4588,7 @@
   "VTGK": {
     "AvailableFormats": "",
     "City": "Guntakal",
+    "FirstTracked": "2026-07-14",
     "Latitude": "15.1669",
     "Longitude": "77.3789",
     "RegionCode": "GUNL",
