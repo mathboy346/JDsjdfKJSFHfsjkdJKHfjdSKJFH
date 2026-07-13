@@ -1,0 +1,96 @@
+# One-off recovery run: workflow_dispatch only, not on any schedule.
+# Shards the AP/Telangana city-catalog crawl across 8 parallel jobs (same
+# pattern as pipeline_a.yml's byvenue scraper) so no single runner IP sends
+# enough request volume to trip Cloudflare's degradation on this endpoint —
+# see backend/jobs/recover_region_crawl_shard.py for the full reasoning.
+name: Recover AP Telangana Venues
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recover-ap-telangana
+  cancel-in-progress: false
+
+jobs:
+  shards:
+    name: Shard ${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run shard
+        env:
+          SHARD_ID: ${{ matrix.shard }}
+          RECOVERY_SHARD_COUNT: 8
+        run: python -m backend.jobs.recover_region_crawl_shard
+
+      - name: Upload shard result
+        uses: actions/upload-artifact@v4
+        with:
+          name: discovered-shard-${{ matrix.shard }}
+          path: discovered_shard_${{ matrix.shard }}.json
+          retention-days: 1
+
+  combine:
+    name: Combine and merge into venue shards
+    needs: shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download all shard results
+        uses: actions/download-artifact@v4
+        with:
+          path: shard_data
+          pattern: discovered-shard-*
+          merge-multiple: true
+
+      - name: Combine and merge (additive only, no pruning)
+        env:
+          DATABASE_URL: ${{ secrets.PIPE_DSN }}
+        run: python -m backend.jobs.recover_region_combine
+
+      - name: Commit and push updated venue shards
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add backend/data/v1.json backend/data/v2.json backend/data/v3.json backend/data/v4.json \
+                  backend/data/v5.json backend/data/v6.json backend/data/v7.json backend/data/v8.json
+          if git diff --cached --quiet; then
+            echo "No new venues found — skipping commit."
+          else
+            git commit -m "Recover AP/Telangana venues via sharded crawl"
+            git push
+          fi
