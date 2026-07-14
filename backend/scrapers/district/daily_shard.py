@@ -1,28 +1,44 @@
-"""Daily District shard scraper. Mirrors the shape of
+"""District shard scraper. Mirrors the shape of
 backend/scrapers/sharded/daily_shard.py (BMS) but shards by movie rather than
 venue, since a single District page fetch is (movie, city) -> every cinema
 and every showtime in that city at once, not (venue, date) -> one venue's
 full day.
 
-Flow per movie assigned to this shard:
-  1. Fetch the movie against one of its SEO-linked cities to learn its
-     language and confirm it's real (movies can vanish from the listing
-     between discovery and scrape).
-  2. Expand to the full target city set for that language (discovery.py).
-  3. Fetch every remaining target city, parse, collect rows for today's date.
+Full-coverage: every movie assigned to this shard is checked against every
+known District city (discovery.py:all_target_cities()), fetched
+concurrently within the shard (mirroring refresh_venues.py's
+ThreadPoolExecutor pattern on the BMS side) since serial fetching against
+~830 cities per movie would blow well past the job timeout.
+
+Advance dates cost a full extra fetch each, not "free" from one request:
+a page fetch only ever returns ONE day's sessions (whatever
+`selectedShowDate` defaults to — today) even though its own metadata lists
+several available `sessionDates`. A different date needs an explicit
+`fromdate=YYYY-MM-DD` param (client.py's `from_date` arg) — discovered from
+the site's own date-tab links, not something inferred from the first
+response. DISTRICT_ADVANCE_DAYS=2 (today + T+1/T+2, matching BMS's Advance
+page) means roughly 3x the per-movie request volume on top of the
+full-coverage jump — accepted deliberately for BMS parity, not an
+accident. Shard count/timeout in district_daily.yml are sized with this in
+mind; revisit both if real runs show it's not enough.
 """
 
 import json
 import os
+import random
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
 from backend.scrapers.district import client, discovery
 from backend.scrapers.district.parser import dedupe_rows, parse_payload
 
 IST = timezone(timedelta(hours=5, minutes=30))
-SHARD_COUNT = int(os.environ.get("DISTRICT_SHARD_COUNT", "8"))
+SHARD_COUNT = int(os.environ.get("DISTRICT_SHARD_COUNT", "24"))
+CITY_WORKERS = int(os.environ.get("DISTRICT_CITY_WORKERS", "10"))
+ADVANCE_DAYS = int(os.environ.get("DISTRICT_ADVANCE_DAYS", "2"))
 
 
 def shard_id() -> int:
@@ -31,6 +47,13 @@ def shard_id() -> int:
 
 def daily_date_code() -> str:
     return datetime.now(IST).strftime("%Y%m%d")
+
+
+def fetch_dates() -> list[str]:
+    """Today plus ADVANCE_DAYS more, as YYYY-MM-DD strings for the
+    `fromdate` param — one fetch per date, per city, per movie."""
+    now = datetime.now(IST)
+    return [(now + timedelta(days=n)).strftime("%Y-%m-%d") for n in range(ADVANCE_DAYS + 1)]
 
 
 def output_path(mode: str, date_code: str, sid: int) -> str:
@@ -42,61 +65,68 @@ def output_path(mode: str, date_code: str, sid: int) -> str:
     return os.path.join(base, f"detailed{sid}.json")
 
 
-def _my_movies(movies: dict[str, set[str]], sid: int, shard_count: int) -> dict[str, set[str]]:
-    ids = sorted(movies.keys(), key=int)
-    mine = ids[sid - 1 :: shard_count]
-    return {mid: movies[mid] for mid in mine}
+def _my_movies(movie_ids: list[str], sid: int, shard_count: int) -> list[str]:
+    ids = sorted(movie_ids, key=int)
+    return ids[sid - 1 :: shard_count]
 
 
-def scrape_movie(mid: str, seo_cities: set[str], city_catalog: dict, date_codes: set[str]) -> list[dict]:
+def scrape_movie(mid: str, cities: set[str], dates: list[str]) -> list[dict]:
     rows: list[dict] = []
-    cities_left = set(seo_cities) or {"delhi-ncr"}  # every movie gets at least one probe city
-    probe_city = next(iter(cities_left))
+    lock = threading.Lock()
+    # today's fetch needs no fromdate param (it's the default); later dates
+    # do — see client.py's from_date arg.
+    tasks = [(city, date if i > 0 else None) for city in cities for i, date in enumerate(dates)]
+    wanted_dates = {d.replace("-", "") for d in dates}
 
-    raw = client.fetch_with_retry(mid, probe_city)
-    if raw is None:
-        return rows
-    rows.extend(parse_payload(raw, date_codes))
-
-    language = rows[0]["language"] if rows else ""
-
-    targets = discovery.target_cities_for_movie(seo_cities, language, city_catalog)
-    targets.discard(probe_city)
-
-    for city in targets:
-        raw = client.fetch_with_retry(mid, city)
+    def worker(task: tuple[str, str | None]) -> None:
+        city, from_date = task
+        raw = client.fetch_with_retry(mid, city, from_date=from_date)
+        time.sleep(random.uniform(0.15, 0.35))
         if raw is None:
-            continue
-        rows.extend(parse_payload(raw, date_codes))
-        time.sleep(0.3)
+            return
+        parsed = parse_payload(raw, wanted_dates)
+        if parsed:
+            with lock:
+                rows.extend(parsed)
+
+    with ThreadPoolExecutor(max_workers=CITY_WORKERS) as pool:
+        list(pool.map(worker, tasks))
 
     return rows
 
 
 def main() -> int:
     sid = shard_id()
-    date_code = daily_date_code()
+    dates = fetch_dates()
 
     listing_html = client.fetch_movies_listing_html()
-    all_movies = discovery.discover_movies(listing_html)
-    my_movies = _my_movies(all_movies, sid, SHARD_COUNT)
+    all_movie_ids = list(discovery.discover_movies(listing_html).keys())
+    my_movie_ids = _my_movies(all_movie_ids, sid, SHARD_COUNT)
     city_catalog = discovery.load_city_catalog()
+    cities = discovery.all_target_cities(city_catalog)
 
     print(
-        f"DISTRICT DAILY SHARD {sid} | {len(my_movies)}/{len(all_movies)} movies | date={date_code}",
+        f"DISTRICT SHARD {sid} | {len(my_movie_ids)}/{len(all_movie_ids)} movies | "
+        f"{len(cities)} cities x {len(dates)} dates each | dates={dates}",
         flush=True,
     )
 
     all_rows: list[dict] = []
-    for i, (mid, seo_cities) in enumerate(my_movies.items(), 1):
-        print(f"[{i}/{len(my_movies)}] movie {mid} ({len(seo_cities)} seo cities)", flush=True)
+    for i, mid in enumerate(my_movie_ids, 1):
+        t0 = time.monotonic()
         try:
-            rows = scrape_movie(mid, seo_cities, city_catalog, {date_code})
+            rows = scrape_movie(mid, cities, dates)
             all_rows.extend(rows)
+            print(
+                f"[{i}/{len(my_movie_ids)}] movie {mid} -> {len(rows)} rows "
+                f"in {time.monotonic() - t0:.1f}s",
+                flush=True,
+            )
         except Exception as e:
             print(f"FAIL movie {mid} | {type(e).__name__}: {e}", flush=True)
 
     deduped = dedupe_rows(all_rows)
+    date_code = daily_date_code()
     out_path = output_path("daily", date_code, sid)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(deduped, f, ensure_ascii=False)

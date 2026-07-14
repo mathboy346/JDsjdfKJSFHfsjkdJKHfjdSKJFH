@@ -9,21 +9,16 @@ movies/{slug}-MV{id} — confirmed live to include exactly the movies this
 whole investigation is about (Evil Dead Burn, Lenin, Gatta Kusthi 2, Idhayam
 Murali, Maa Inti Bangaaram), so it's used as the live movie catalog instead.
 
-City targeting: checking every discovered movie against all ~830 known
-District cities would be enormous (100+ movies x 800+ cities) for little
-benefit, since most movies only really matter in a handful of regions. The
-listing page itself links each movie against a handful of "top city" pages
-(useful, but not proven to include exactly the cities we most need — the
-whole point of this project is that AP/Telangana/Tamil Nadu single-screen
-venues are easy to undercount). So city targeting is the union of:
-  1. Cities the /movies/ page itself links the movie against (broad, generic
-     coverage — mostly metro/wide-release cities).
-  2. Every city in the state(s) tied to the movie's language, for the
-     specific languages this investigation confirmed have real exposure
-     through the same booking-tech circuit (Telugu, Tamil, Kannada,
-     Malayalam, Gujarati/Hindi) — see LANGUAGE_TO_STATES below. This is a
-     targeted, not exhaustive, expansion: it's scoped to the exact gap this
-     project exists to close, not a general "cover all of India" crawl.
+City targeting: this project started out targeting only the states/languages
+known to have real BMS undercounting exposure (see git history for the
+LANGUAGE_TO_STATES-based approach that shipped first). Once the goal became
+full BMS parity — District as a standalone alternate backend, not just a
+gap-filler — every movie is checked against the **entire** city catalog
+(~830 cities). This is a real jump in request volume (see
+daily_shard.py's concurrency + shard-count handling), but partial coverage
+can't stand in for a full backend: a movie playing somewhere outside the
+originally-targeted states would simply be invisible in District-only mode
+otherwise.
 """
 
 import json
@@ -32,17 +27,6 @@ import re
 
 _DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data")
 CITY_CATALOG_FILE = os.path.join(_DATA_DIR, "district_cities.json")
-
-# States confirmed (via direct bms_show_log analysis) to have real gross
-# exposure through the same dark-chain/booking-tech circuit, mapped from the
-# language most associated with that exposure in that state.
-LANGUAGE_TO_STATES = {
-    "Telugu": ["andhra-pradesh", "telangana"],
-    "Tamil": ["tamil-nadu"],
-    "Kannada": ["karnataka"],
-    "Malayalam": ["kerala"],
-    "Gujarati": ["gujarat"],
-}
 
 _MOVIE_LINK_RE = re.compile(r"movies/[a-z0-9-]+-MV(\d+)")
 _MOVIE_CITY_LINK_RE = re.compile(r"movies/[a-z0-9-]+-in-([a-z0-9-]+)-MV(\d+)")
@@ -65,16 +49,7 @@ def discover_movies(listing_html: str) -> dict[str, set[str]]:
     return movies
 
 
-def target_cities_for_movie(
-    seo_cities: set[str], language: str, city_catalog: dict
-) -> set[str]:
-    """Union of the movie's SEO-linked cities and every city in the
-    states tied to its language (if that language is one of the confirmed
-    exposure languages)."""
-    targets = set(seo_cities)
-    states = LANGUAGE_TO_STATES.get(language.strip(), [])
-    if states:
-        for slug, meta in city_catalog["cities"].items():
-            if meta.get("state") in states:
-                targets.add(slug)
-    return targets
+def all_target_cities(city_catalog: dict) -> set[str]:
+    """Every known District city — full-coverage targeting, no per-movie
+    language/state narrowing."""
+    return set(city_catalog["cities"].keys())

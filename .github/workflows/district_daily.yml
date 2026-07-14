@@ -1,7 +1,13 @@
 # Manual: workflow_dispatch (triggered by an external scheduler), same
-# pattern as pipeline_a.yml. District rows are granular-only (see
-# ingest_district_combined.py) -- no aggregate-table ingest step, since
-# nothing display-facing reads district_show_log yet.
+# pattern as pipeline_a.yml.
+#
+# Full-coverage: every movie is checked against every known District city
+# (~830) x 3 dates (today + T+1/T+2, for Advance parity -- each date is a
+# full separate fetch, not free), fetched concurrently within each shard
+# (see daily_shard.py). 24 shards / 75-minute timeout is a starting point,
+# not a proven-tuned value -- widen shard count or lower
+# DISTRICT_CITY_WORKERS if runs start timing out, there's no BMS-style
+# rate-limiting evidence for District yet either way.
 #
 # Fetches district.in directly (no Cloudflare Worker) by default -- unlike
 # BMS, GH Actions IPs haven't been shown to get degraded responses from
@@ -25,11 +31,11 @@ jobs:
   shards:
     name: Shard ${{ matrix.shard }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
 
     steps:
       - name: Checkout
@@ -87,7 +93,7 @@ jobs:
       - name: Combine shards
         run: |
           mkdir -p combined
-          for i in 1 2 3 4 5 6 7 8; do
+          for i in $(seq 1 24); do
             if [ -f "shard_data/detailed${i}.json" ]; then
               cp "shard_data/detailed${i}.json" "combined/detailed${i}.json"
             fi
@@ -104,7 +110,7 @@ jobs:
           retention-days: 1
 
   ingest:
-    name: Ingest granular
+    name: Ingest granular + aggregates
     needs: combine
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -127,7 +133,7 @@ jobs:
           name: district-combined-daily
           path: combined
 
-      - name: Ingest granular records
+      - name: Ingest granular + aggregate records
         env:
           DATABASE_URL: ${{ secrets.PIPE_DSN }}
         run: |

@@ -19,6 +19,7 @@ _DISTRICT_SHOW_LOG_COLUMNS = [
     "session_key",
     "movie",
     "district_movie_id",
+    "variant_key",
     "language",
     "runtime_minutes",
     "venue",
@@ -46,6 +47,7 @@ def _district_show_log_record(row: dict, show_date: date) -> dict:
         "session_key": session_key,
         "movie": row["movie"],
         "district_movie_id": str(row.get("district_movie_id") or ""),
+        "variant_key": row.get("variant_key") or "",
         "language": row.get("language", ""),
         "runtime_minutes": row.get("runtime_minutes"),
         "venue": row["venue"],
@@ -93,6 +95,7 @@ async def ingest_district_show_log(rows: list[dict], show_date: date) -> None:
                     session_key varchar(600) NOT NULL,
                     movie varchar(400),
                     district_movie_id varchar(50),
+                    variant_key varchar(400),
                     language varchar(50),
                     runtime_minutes integer,
                     venue varchar(300),
@@ -120,18 +123,19 @@ async def ingest_district_show_log(rows: list[dict], show_date: date) -> None:
             await conn.execute(
                 """
                 INSERT INTO district_show_log (
-                    show_date, session_key, movie, district_movie_id, language,
-                    runtime_minutes, venue, district_venue_id, chain, client_id,
-                    city, state, time, audi, session_id, total_seats, sold,
-                    available, gross, occupancy
+                    show_date, session_key, movie, district_movie_id, variant_key,
+                    language, runtime_minutes, venue, district_venue_id, chain,
+                    client_id, city, state, time, audi, session_id, total_seats,
+                    sold, available, gross, occupancy
                 )
                 SELECT
-                    show_date, session_key, movie, district_movie_id, language,
-                    runtime_minutes, venue, district_venue_id, chain, client_id,
-                    city, state, time, audi, session_id, total_seats, sold,
-                    available, gross, occupancy
+                    show_date, session_key, movie, district_movie_id, variant_key,
+                    language, runtime_minutes, venue, district_venue_id, chain,
+                    client_id, city, state, time, audi, session_id, total_seats,
+                    sold, available, gross, occupancy
                 FROM district_show_log_staging
                 ON CONFLICT (show_date, session_key) DO UPDATE SET
+                    variant_key = EXCLUDED.variant_key,
                     total_seats = EXCLUDED.total_seats,
                     sold = EXCLUDED.sold,
                     available = EXCLUDED.available,

@@ -49,15 +49,26 @@ def _use_worker() -> bool:
     return bool(WORKER_URL and WORKER_KEY)
 
 
-def fetch_movie_sessions_raw(movie_id: str, city_slug: str) -> dict:
+def fetch_movie_sessions_raw(movie_id: str, city_slug: str, from_date: str | None = None) -> dict:
     """Fetch the __NEXT_DATA__ payload for a (movie, city) pair — directly
     from district.in by default, or via the district-proxy worker if
     configured. Returns the parsed JSON blob (same shape as
-    window.__NEXT_DATA__ in the browser)."""
+    window.__NEXT_DATA__ in the browser).
+
+    `from_date` (YYYY-MM-DD): a page fetch only ever returns ONE day's
+    sessions (whatever `selectedShowDate` defaults to — today), even though
+    the page's own metadata lists several available `sessionDates`. Getting
+    a different date's sessions requires this explicit param (discovered by
+    inspecting the site's own date-tab links, which carry
+    `?fromdate=YYYY-MM-DD`) — one full extra fetch per date, not something
+    that comes back for free in a single request."""
     if _use_worker():
+        params = {"movie_id": movie_id, "city": city_slug}
+        if from_date:
+            params["from_date"] = from_date
         resp = requests.get(
             WORKER_URL,
-            params={"movie_id": movie_id, "city": city_slug},
+            params=params,
             headers={"x-worker-key": WORKER_KEY},
             timeout=API_TIMEOUT,
         )
@@ -70,7 +81,8 @@ def fetch_movie_sessions_raw(movie_id: str, city_slug: str) -> dict:
     # The page's own slug text is ignored by District's router — only the
     # "-in-{city}-MV{id}" suffix is actually resolved.
     url = f"https://www.district.in/movies/x-movie-tickets-in-{city_slug}-MV{movie_id}"
-    resp = requests.get(url, headers=_BROWSER_HEADERS, timeout=API_TIMEOUT)
+    params = {"fromdate": from_date} if from_date else None
+    resp = requests.get(url, params=params, headers=_BROWSER_HEADERS, timeout=API_TIMEOUT)
     if resp.status_code == 404:
         raise NotFoundError(f"{movie_id}/{city_slug} not found on District")
     if resp.status_code != 200:
@@ -104,14 +116,16 @@ def fetch_movies_listing_html() -> str:
     return resp.text
 
 
-def fetch_with_retry(movie_id: str, city_slug: str, retries: int = 2) -> dict | None:
+def fetch_with_retry(
+    movie_id: str, city_slug: str, retries: int = 2, from_date: str | None = None
+) -> dict | None:
     """Best-effort fetch — returns None (not an exception) on persistent
     failure, since a single bad (movie, city) pair shouldn't stop the shard.
     A 404 short-circuits immediately (no session data to retry for; the
     movie just isn't running in that city)."""
     for attempt in range(retries + 1):
         try:
-            return fetch_movie_sessions_raw(movie_id, city_slug)
+            return fetch_movie_sessions_raw(movie_id, city_slug, from_date=from_date)
         except NotFoundError:
             return None
         except Exception:

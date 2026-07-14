@@ -218,3 +218,155 @@ class Venue(Base):
     latitude     = Column(Float)
     longitude    = Column(Float)
     last_updated = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# --- District aggregate tables -----------------------------------------
+# Mirror the 8 BMS aggregate tables above 1:1 (same columns), kept as
+# separate tables rather than a shared `source` column, for the same reason
+# district_show_log is separate from bms_show_log (see
+# docs/district-integration-plan.md, bh repo, section 2).
+
+class DistrictCurrentAdvance(Base):
+    __tablename__ = "district_current_advance"
+    variant_key = Column(String(400), primary_key=True)
+    date_for    = Column(Date, nullable=False, primary_key=True)
+    shows       = Column(Integer, default=0)
+    gross       = Column(Float, default=0)
+    sold        = Column(Integer, default=0)
+    total_seats = Column(Integer, default=0)
+    venues      = Column(Integer, default=0)
+    cities      = Column(Integer, default=0)
+    fastfilling = Column(Integer, default=0)
+    housefull   = Column(Integer, default=0)
+    occupancy   = Column(Float, default=0)
+    nett_cr_est = Column(Float, default=0)
+    fetched_at  = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class DistrictCurrentDaily(Base):
+    __tablename__ = "district_current_daily"
+    variant_key = Column(String(400), primary_key=True)
+    date_for    = Column(Date, nullable=False)
+    shows       = Column(Integer, default=0)
+    gross       = Column(Float, default=0)
+    sold        = Column(Integer, default=0)
+    total_seats = Column(Integer, default=0)
+    venues      = Column(Integer, default=0)
+    cities      = Column(Integer, default=0)
+    fastfilling = Column(Integer, default=0)
+    housefull   = Column(Integer, default=0)
+    occupancy   = Column(Float, default=0)
+    nett_cr_est = Column(Float, default=0)
+    fetched_at  = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class DistrictAdvanceCity(Base):
+    __tablename__ = "district_advance_city"
+    id          = Column(BigInteger, primary_key=True, autoincrement=True)
+    variant_key = Column(String(400))
+    date_for    = Column(Date)
+    city        = Column(String(100))
+    state       = Column(String(100))
+    region      = Column(String(20))
+    venues      = Column(Integer)
+    shows       = Column(Integer)
+    gross       = Column(Float)
+    sold        = Column(Integer)
+    total_seats = Column(Integer)
+    fastfilling = Column(Integer)
+    housefull   = Column(Integer)
+    occupancy   = Column(Float)
+    __table_args__ = (UniqueConstraint("variant_key", "date_for", "city"),)
+
+
+class DistrictDailyCity(Base):
+    __tablename__ = "district_daily_city"
+    id          = Column(BigInteger, primary_key=True, autoincrement=True)
+    variant_key = Column(String(400))
+    date_for    = Column(Date)
+    city        = Column(String(100))
+    state       = Column(String(100))
+    region      = Column(String(20))
+    venues      = Column(Integer)
+    shows       = Column(Integer)
+    gross       = Column(Float)
+    sold        = Column(Integer)
+    total_seats = Column(Integer)
+    fastfilling = Column(Integer)
+    housefull   = Column(Integer)
+    occupancy   = Column(Float)
+    __table_args__ = (UniqueConstraint("variant_key", "date_for", "city"),)
+
+
+class DistrictAdvanceChain(Base):
+    __tablename__ = "district_advance_chain"
+    id          = Column(BigInteger, primary_key=True, autoincrement=True)
+    variant_key = Column(String(400))
+    date_for    = Column(Date)
+    chain       = Column(String(150))
+    is_pic      = Column(Boolean, default=False)
+    venues      = Column(Integer)
+    shows       = Column(Integer)
+    gross       = Column(Float)
+    sold        = Column(Integer)
+    total_seats = Column(Integer)
+    gross_adj   = Column(Float)
+    sold_adj    = Column(Integer)
+    fastfilling = Column(Integer)
+    housefull   = Column(Integer)
+    occupancy   = Column(Float)
+    __table_args__ = (UniqueConstraint("variant_key", "date_for", "chain"),)
+
+
+class DistrictDailyChain(Base):
+    __tablename__ = "district_daily_chain"
+    id          = Column(BigInteger, primary_key=True, autoincrement=True)
+    variant_key = Column(String(400))
+    date_for    = Column(Date)
+    chain       = Column(String(150))
+    is_pic      = Column(Boolean, default=False)
+    venues      = Column(Integer)
+    shows       = Column(Integer)
+    gross       = Column(Float)
+    sold        = Column(Integer)
+    total_seats = Column(Integer)
+    gross_adj   = Column(Float)
+    sold_adj    = Column(Integer)
+    fastfilling = Column(Integer)
+    housefull   = Column(Integer)
+    occupancy   = Column(Float)
+    __table_args__ = (UniqueConstraint("variant_key", "date_for", "chain"),)
+
+
+class DistrictAdvanceHistory(Base):
+    __tablename__ = "district_advance_history"
+    id          = Column(BigInteger, primary_key=True, autoincrement=True)
+    variant_key = Column(String(400))
+    date_for    = Column(Date)
+    snapshot_at = Column(DateTime(timezone=True), nullable=False)
+    shows       = Column(Integer)
+    gross       = Column(Float)
+    sold        = Column(Integer)
+    total_seats = Column(Integer)
+    occupancy   = Column(Float)
+    nett_cr_est = Column(Float)
+    __table_args__ = (
+        Index("district_adv_hist_idx", "variant_key", "date_for", "snapshot_at"),
+    )
+
+
+class DistrictDailyHistory(Base):
+    __tablename__ = "district_daily_history"
+    id          = Column(BigInteger, primary_key=True, autoincrement=True)
+    variant_key = Column(String(400))
+    date_for    = Column(Date)
+    snapshot_at = Column(DateTime(timezone=True), nullable=False)
+    shows       = Column(Integer)
+    gross       = Column(Float)
+    sold        = Column(Integer)
+    total_seats = Column(Integer)
+    occupancy   = Column(Float)
+    nett_cr_est = Column(Float)
+    __table_args__ = (
+        Index("district_daily_hist_idx", "variant_key", "date_for", "snapshot_at"),
+    )
