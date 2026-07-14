@@ -33,7 +33,7 @@ async def resolve_variant_keys(rows: list[dict]) -> list[dict]:
     }
     if not district_movie_ids:
         for r in rows:
-            r["variant_key"] = synthesize_variant_key(r.get("movie", "Unknown"), r.get("language", ""))
+            r["variant_key"] = synthesize_variant_key(r.get("movie") or "Unknown", r.get("language") or "")
         return rows
 
     settings = get_settings()
@@ -56,6 +56,6 @@ async def resolve_variant_keys(rows: list[dict]) -> list[dict]:
     for r in rows:
         mid = str(r.get("district_movie_id") or "")
         r["variant_key"] = matches.get(mid) or synthesize_variant_key(
-            r.get("movie", "Unknown"), r.get("language", "")
+            r.get("movie") or "Unknown", r.get("language") or ""
         )
     return rows

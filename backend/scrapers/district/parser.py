@@ -44,13 +44,18 @@ def parse_payload(raw: dict, wanted_date_codes: set[str]) -> list[dict]:
 
     movie_meta = (obj.get("meta") or {}).get("movie") or {}
     district_movie_id = movie_meta.get("content_id")
-    movie_name = movie_meta.get("name", "Unknown")
-    primary_language = movie_meta.get("primary_language", "")
+    # `.get(key) or default` throughout this block, not `.get(key, default)` —
+    # District's payload can carry an explicit JSON `null` for these fields
+    # (confirmed live: a full-scale run crashed on state=None reaching
+    # aggregator.py's state.strip()), and dict.get's default only kicks in
+    # when the KEY is absent, not when its value is None.
+    movie_name = movie_meta.get("name") or "Unknown"
+    primary_language = movie_meta.get("primary_language") or ""
     runtime_minutes = movie_meta.get("duration")
 
     for cinema_entry in obj.get("arrangedSessions") or []:
         cinema = cinema_entry.get("data") or {}
-        venue_name = cinema.get("name", "Unknown")
+        venue_name = cinema.get("name") or "Unknown"
         # chainKey is the real cinema brand (e.g. "Cinepolis", "Suresh
         # Production"); clientId is the booking-tech backend a venue routes
         # through (e.g. "ticketnew") and is NOT a chain — confirmed live by a
@@ -59,8 +64,8 @@ def parse_payload(raw: dict, wanted_date_codes: set[str]) -> list[dict]:
         # at all (independent single-screens with no bigger brand).
         chain = cinema.get("chainKey") or cinema.get("clientId") or "Unknown"
         district_venue_id = cinema.get("id")
-        city = cinema.get("city", "Unknown")
-        state = cinema.get("state", "Unknown")
+        city = cinema.get("city") or "Unknown"
+        state = cinema.get("state") or "Unknown"
 
         for sess in cinema_entry.get("sessions") or []:
             show_time_iso = sess.get("showTime", "")
@@ -85,7 +90,7 @@ def parse_payload(raw: dict, wanted_date_codes: set[str]) -> list[dict]:
                 "venue": venue_name,
                 "district_venue_id": district_venue_id,
                 "chain": chain,
-                "client_id": cinema.get("clientId", ""),
+                "client_id": cinema.get("clientId") or "",
                 "city": city,
                 "state": state,
                 "time": _format_time(show_time_iso),
