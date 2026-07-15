@@ -16,10 +16,10 @@ a page fetch only ever returns ONE day's sessions (whatever
 several available `sessionDates`. A different date needs an explicit
 `fromdate=YYYY-MM-DD` param (client.py's `from_date` arg) — discovered from
 the site's own date-tab links, not something inferred from the first
-response. DISTRICT_ADVANCE_DAYS=2 (today + T+1/T+2, matching BMS's Advance
-page) means roughly 3x the per-movie request volume on top of the
-full-coverage jump — accepted deliberately for BMS parity, not an
-accident. Shard count/timeout in district_daily.yml are sized with this in
+response. DISTRICT_ADVANCE_DAYS defaults to 0 (today only) — District's job
+is plugging gaps in BMS's live dashboard numbers, not Advance-page parity,
+so T+1/T+2 aren't worth 3x the request volume/cost. Shard count/timeout in
+district_daily.yml are sized with this in
 mind; revisit both if real runs show it's not enough.
 """
 
@@ -38,7 +38,9 @@ from backend.scrapers.district.parser import dedupe_rows, parse_payload
 IST = timezone(timedelta(hours=5, minutes=30))
 SHARD_COUNT = int(os.environ.get("DISTRICT_SHARD_COUNT", "24"))
 CITY_WORKERS = int(os.environ.get("DISTRICT_CITY_WORKERS", "10"))
-ADVANCE_DAYS = int(os.environ.get("DISTRICT_ADVANCE_DAYS", "2"))
+# Live-day only: District's role is filling BMS gaps on the dashboard, not
+# Advance-page parity, so T+1/T+2 aren't worth 3x the request volume/cost.
+ADVANCE_DAYS = int(os.environ.get("DISTRICT_ADVANCE_DAYS", "0"))
 
 
 def shard_id() -> int:
