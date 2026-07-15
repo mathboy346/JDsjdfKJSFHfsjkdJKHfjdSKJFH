@@ -68,6 +68,14 @@ jobs:
   combine:
     name: Combine shards
     needs: shards
+    # A straggler shard or two (transient 403s even through the Cloudflare
+    # Worker fallback) shouldn't drop the whole cycle's data -- combine.py
+    # already tolerates missing shard files, and both ingest paths
+    # (district_show_log, district_current_daily/etc.) are upsert-only, so
+    # ingesting a partial run is always safe, never destructive. Only a
+    # total wipeout (every shard fails, no artifacts at all) fails this job
+    # for real, at the download-artifact step -- appropriately loud.
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
