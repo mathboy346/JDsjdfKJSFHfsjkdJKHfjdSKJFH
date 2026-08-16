@@ -2,19 +2,19 @@
 
 District's per-movie showtimes page is a plain, unauthenticated public
 webpage (server-rendered with the full dataset embedded in a
-`__NEXT_DATA__` script tag) — confirmed by a direct unauthenticated fetch
-during design, with no Cloudflare JS challenge or bot-detection page
-encountered. That's meaningfully different from BMS, where GitHub Actions'
-runner IPs are *confirmed* (via this project's own earlier investigation)
-to get degraded responses from Cloudflare that a residential IP doesn't.
-District has shown no such symptom yet.
+`__NEXT_DATA__` script tag) — no auth, no JS challenge.
 
-So this defaults to fetching district.in directly — no Worker in the loop.
-The district-proxy Worker (district_worker/, bh repo) exists as a fallback:
-if a real GH Actions run shows blocking/degradation (mirroring exactly what
-happened with BMS), set DISTRICT_WORKER_URL/DISTRICT_WORKER_KEY to route
-through it instead, without any other code change. Don't deploy or wire up
-the Worker preemptively for a problem that hasn't been observed.
+Both direct-from-runner and Worker-proxied fetches have each independently
+been observed getting blocked (403) by District at different times — direct
+GH Actions runner IPs in mid-July, then the district-proxy Worker itself in
+early August, likely because Cloudflare Workers are a common enough scraping
+vector that District (or whatever's in front of it) started blocking that
+traffic class specifically. Neither path has proven durably reliable on its
+own, so every fetch tries direct first and falls back to the Worker
+(district_worker/, bh repo) only on a 403 specifically — never on a 404 or
+other error, so a movie that's genuinely not showing in a city doesn't
+trigger a pointless extra round-trip. The fallback is a no-op if
+DISTRICT_WORKER_URL/DISTRICT_WORKER_KEY aren't set.
 """
 
 import os
@@ -45,15 +45,24 @@ class NotFoundError(Exception):
     """The movie/city combination doesn't exist on District (404)."""
 
 
-def _use_worker() -> bool:
+def _worker_configured() -> bool:
     return bool(WORKER_URL and WORKER_KEY)
 
 
+def _via_worker(params: dict) -> requests.Response:
+    return requests.get(
+        WORKER_URL,
+        params=params,
+        headers={"x-worker-key": WORKER_KEY},
+        timeout=API_TIMEOUT,
+    )
+
+
 def fetch_movie_sessions_raw(movie_id: str, city_slug: str, from_date: str | None = None) -> dict:
-    """Fetch the __NEXT_DATA__ payload for a (movie, city) pair — directly
-    from district.in by default, or via the district-proxy worker if
-    configured. Returns the parsed JSON blob (same shape as
-    window.__NEXT_DATA__ in the browser).
+    """Fetch the __NEXT_DATA__ payload for a (movie, city) pair. Tries
+    district.in directly first, falling back to the district-proxy Worker
+    only if that gets a 403 (see module docstring). Returns the parsed JSON
+    blob (same shape as window.__NEXT_DATA__ in the browser).
 
     `from_date` (YYYY-MM-DD): a page fetch only ever returns ONE day's
     sessions (whatever `selectedShowDate` defaults to — today), even though
@@ -62,27 +71,27 @@ def fetch_movie_sessions_raw(movie_id: str, city_slug: str, from_date: str | Non
     inspecting the site's own date-tab links, which carry
     `?fromdate=YYYY-MM-DD`) — one full extra fetch per date, not something
     that comes back for free in a single request."""
-    if _use_worker():
-        params = {"movie_id": movie_id, "city": city_slug}
-        if from_date:
-            params["from_date"] = from_date
-        resp = requests.get(
-            WORKER_URL,
-            params=params,
-            headers={"x-worker-key": WORKER_KEY},
-            timeout=API_TIMEOUT,
-        )
-        if resp.status_code == 404:
-            raise NotFoundError(f"{movie_id}/{city_slug} not found on District")
-        if resp.status_code != 200:
-            raise RuntimeError(f"Worker returned {resp.status_code}: {resp.text[:200]}")
-        return resp.json()
-
     # The page's own slug text is ignored by District's router — only the
     # "-in-{city}-MV{id}" suffix is actually resolved.
     url = f"https://www.district.in/movies/x-movie-tickets-in-{city_slug}-MV{movie_id}"
-    params = {"fromdate": from_date} if from_date else None
-    resp = requests.get(url, params=params, headers=_BROWSER_HEADERS, timeout=API_TIMEOUT)
+    direct_params = {"fromdate": from_date} if from_date else None
+    resp = requests.get(url, params=direct_params, headers=_BROWSER_HEADERS, timeout=API_TIMEOUT)
+
+    if resp.status_code == 403 and _worker_configured():
+        direct_status = resp.status_code
+        worker_params = {"movie_id": movie_id, "city": city_slug}
+        if from_date:
+            worker_params["from_date"] = from_date
+        resp = _via_worker(worker_params)
+        if resp.status_code == 404:
+            raise NotFoundError(f"{movie_id}/{city_slug} not found on District")
+        if resp.status_code != 200:
+            raise RuntimeError(
+                f"District blocked the direct fetch ({direct_status}) and the "
+                f"Worker fallback also failed ({resp.status_code}): {resp.text[:200]}"
+            )
+        return resp.json()
+
     if resp.status_code == 404:
         raise NotFoundError(f"{movie_id}/{city_slug} not found on District")
     if resp.status_code != 200:
@@ -98,20 +107,14 @@ def fetch_movie_sessions_raw(movie_id: str, city_slug: str, from_date: str | Non
 
 def fetch_movies_listing_html() -> str:
     """Fetch the general /movies/ listing page — used to discover currently
-    showing/upcoming movie IDs and a sample of cities each is linked for."""
-    if _use_worker():
-        resp = requests.get(
-            WORKER_URL,
-            params={"mode": "discover"},
-            headers={"x-worker-key": WORKER_KEY},
-            timeout=API_TIMEOUT,
-        )
-        resp.raise_for_status()
-        return resp.text
-
+    showing/upcoming movie IDs and a sample of cities each is linked for.
+    Same direct-first, Worker-on-403-fallback pattern as
+    fetch_movie_sessions_raw."""
     resp = requests.get(
         "https://www.district.in/movies/", headers=_BROWSER_HEADERS, timeout=API_TIMEOUT
     )
+    if resp.status_code == 403 and _worker_configured():
+        resp = _via_worker({"mode": "discover"})
     resp.raise_for_status()
     return resp.text
 
