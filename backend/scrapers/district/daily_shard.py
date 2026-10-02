@@ -26,6 +26,7 @@ mind; revisit both if real runs show it's not enough.
 import json
 import os
 import random
+import re
 import sys
 import threading
 import time
@@ -45,6 +46,18 @@ ADVANCE_DAYS = int(os.environ.get("DISTRICT_ADVANCE_DAYS", "0"))
 
 def shard_id() -> int:
     return int(os.environ.get("SHARD_ID", "1"))
+
+
+_URL_RE = re.compile(r"https?://\S+")
+
+
+def redact_urls(text: str) -> str:
+    """Strip URLs from error text before it is logged or written to the status
+    file. HTTP error messages embed the request URL, and for a request routed
+    through the proxy Worker that URL is a repository secret: masked in this
+    job's own log, but NOT in the combine job (which reads the status file and
+    doesn't have the secret in scope) -- in a public repo that would leak it."""
+    return _URL_RE.sub("<url>", text)
 
 
 def _log(msg: str) -> None:
@@ -125,7 +138,7 @@ def main() -> int:
         # nothing to scrape: finish cleanly with an empty result so the run
         # completes, and let the combine job raise ONE visible warning for the
         # whole run instead of 24 red shard failures.
-        reason = f"{type(e).__name__}: {str(e)[:200]}"
+        reason = f"{type(e).__name__}: {redact_urls(str(e))[:200]}"
         _log(f"DISTRICT SHARD {sid} | movie listing unavailable | {reason}")
         _write_outputs(out_path, sid, [], {"listing_ok": False, "error": reason, "movies": 0, "fetch": dict(client.STATS)})
         print(out_path, flush=True)
@@ -152,7 +165,7 @@ def main() -> int:
                 f"in {time.monotonic() - t0:.1f}s"
             )
         except Exception as e:
-            _log(f"FAIL movie {mid} | {type(e).__name__}: {e}")
+            _log(f"FAIL movie {mid} | {type(e).__name__}: {redact_urls(str(e))}")
 
     deduped = dedupe_rows(all_rows)
     stats = dict(client.STATS)

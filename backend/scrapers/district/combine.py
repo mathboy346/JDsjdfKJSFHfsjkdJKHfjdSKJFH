@@ -10,7 +10,7 @@ import json
 import os
 import sys
 
-from backend.scrapers.district.daily_shard import SHARD_COUNT
+from backend.scrapers.district.daily_shard import SHARD_COUNT, redact_urls
 from backend.scrapers.district.parser import dedupe_rows
 
 # Share of failed page fetches above which the cycle is flagged as degraded.
@@ -56,6 +56,8 @@ def shard_report(input_dir: str, rows: int) -> dict:
     no_output = [n for n in range(1, SHARD_COUNT + 1) if n not in reported]
     listing_failed = sorted(int(s["shard"]) for s in statuses if not s.get("listing_ok", True))
     first_error = next((s.get("error") for s in statuses if s.get("error")), None)
+    if first_error:
+        first_error = redact_urls(str(first_error))  # belt and braces: never echo a URL into public logs
 
     fetch = {"ok": 0, "not_found": 0, "failed": 0, "denied": 0}
     for s in statuses:
