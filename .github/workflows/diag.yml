@@ -1,0 +1,32 @@
+# Temporary diagnostic: probes BMS/District from GH runner IPs with several HTTP
+# clients. workflow_dispatch only. Removed once the investigation is done.
+name: Diag Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Probe ${{ matrix.n }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        n: [1, 2, 3, 4, 5, 6]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: pip install cloudscraper requests curl_cffi
+      - name: Probe
+        env:
+          PROBE_N: ${{ matrix.n }}
+          DISTRICT_WORKER_URL: ${{ secrets.DISTRICT_WORKER_URL }}
+          DISTRICT_WORKER_KEY: ${{ secrets.DISTRICT_WORKER_KEY }}
+        run: python diag_probe.py all
