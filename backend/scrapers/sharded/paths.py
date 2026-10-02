@@ -33,6 +33,11 @@ def detailed_path(mode: str, date_code: str, sid: int | None = None) -> str:
     return os.path.join(output_dir(mode, date_code), f"detailed{sid}.json")
 
 
+def status_path(mode: str, date_code: str, sid: int | None = None) -> str:
+    sid = sid or shard_id()
+    return os.path.join(output_dir(mode, date_code), f"status{sid}.json")
+
+
 def log_path(mode: str, date_code: str, sid: int | None = None) -> str:
     sid = sid or shard_id()
     log_dir = os.path.join(output_dir(mode, date_code), "logs")

@@ -15,7 +15,7 @@ from backend.scrapers.sharded.paths import (
     venues_path,
     IST,
 )
-from backend.scrapers.sharded.runner import make_logger, save_detailed, scrape_shard
+from backend.scrapers.sharded.runner import finish_shard, make_logger, scrape_shard
 
 
 def minutes_left(show_time_str: str) -> float:
@@ -54,7 +54,7 @@ def main() -> int:
     with open(vpath, encoding="utf-8") as f:
         venues = json.load(f)
 
-    detailed = scrape_shard(
+    result = scrape_shard(
         venues,
         date_code,
         lf,
@@ -62,8 +62,8 @@ def main() -> int:
     )
 
     out_path = detailed_path("daily", date_code, sid)
-    save_detailed(out_path, detailed)
-    log(f"DONE | Shows={len(detailed)} | wrote {out_path}")
+    finish_shard("daily", sid, 0, date_code, venues, result, out_path)
+    log(f"DONE | Shows={len(result['rows'])} | wrote {out_path}")
     print(out_path, flush=True)
     return 0
 

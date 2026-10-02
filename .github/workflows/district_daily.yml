@@ -1,19 +1,26 @@
 # Manual: workflow_dispatch (triggered by an external scheduler), same
 # pattern as pipeline_a.yml.
 #
-# Full-coverage: every movie is checked against every known District city
-# (~830) x 3 dates (today + T+1/T+2, for Advance parity -- each date is a
-# full separate fetch, not free), fetched concurrently within each shard
-# (see daily_shard.py). 24 shards / 75-minute timeout is a starting point,
-# not a proven-tuned value -- widen shard count or lower
-# DISTRICT_CITY_WORKERS if runs start timing out, there's no BMS-style
-# rate-limiting evidence for District yet either way.
+# Live-day only: every movie on District's /movies/ listing is checked against
+# every known District city (~830) for today's date (DISTRICT_ADVANCE_DAYS
+# defaults to 0; each extra date would be a full separate fetch), fetched
+# concurrently within each shard (see daily_shard.py). 24 shards / 75-minute
+# timeout is a starting point, not a proven-tuned value -- widen shard count or
+# lower DISTRICT_CITY_WORKERS if runs start timing out.
 #
-# Fetches district.in directly (no Cloudflare Worker) by default -- unlike
-# BMS, GH Actions IPs haven't been shown to get degraded responses from
-# District. If a run here starts showing that symptom, set the
-# DISTRICT_WORKER_URL/DISTRICT_WORKER_KEY secrets below to route through
-# district_worker/ (bh repo) instead; the scraper picks it up automatically.
+# Requests go to district.in directly and fall back to the district-proxy
+# Worker (district_worker/ in the bh repo) on an HTTP 403, if the
+# DISTRICT_WORKER_URL/DISTRICT_WORKER_KEY secrets are set (see
+# backend/scrapers/district/client.py).
+#
+# Since mid-August 2026 District's CDN has refused requests from GitHub-hosted
+# runner IPs, and from the Worker too. While that lasts, every shard finishes
+# with an empty result and the run completes GREEN with a single warning
+# annotation from the Combine job ("No District sessions scraped") plus a job
+# summary -- look at the run's annotations, not just its status, to see
+# whether District data actually landed. Partial and failed shards are tolerated
+# the same way (see pipeline_a.yml). Genuine breakage in combine/ingest (e.g.
+# the database being unreachable after retries) still fails the run.
 name: District Daily
 
 on:
@@ -32,6 +39,8 @@ jobs:
     name: Shard ${{ matrix.shard }}
     runs-on: ubuntu-latest
     timeout-minutes: 75
+    # A shard job dying must not fail the run or skip combine.
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -39,60 +48,81 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-scrape.txt
 
       - name: Run shard
+        id: shard
+        continue-on-error: true
+        timeout-minutes: 65
         env:
           SHARD_ID: ${{ matrix.shard }}
           DISTRICT_WORKER_URL: ${{ secrets.DISTRICT_WORKER_URL }}
           DISTRICT_WORKER_KEY: ${{ secrets.DISTRICT_WORKER_KEY }}
+        # Progress and diagnostics go to stderr (visible in this log); stdout
+        # carries only the output path on its last line.
         run: |
+          mkdir -p shard_out
           OUT=$(python -m backend.scrapers.district.daily_shard | tail -1)
-          cp "$OUT" "detailed${{ matrix.shard }}.json"
+          cp "$OUT" "shard_out/detailed${{ matrix.shard }}.json"
+          cp "$(dirname "$OUT")/status${{ matrix.shard }}.json" shard_out/
+
+      - name: Flag failed shard
+        if: steps.shard.outcome == 'failure'
+        run: echo "::warning title=District shard ${{ matrix.shard }} failed::the shard step failed or timed out (see the coverage report in the Combine job)"
 
       - name: Upload shard artifact
-        uses: actions/upload-artifact@v4
+        if: always()
+        uses: actions/upload-artifact@v7
         with:
           name: district-detailed-${{ matrix.shard }}
-          path: detailed${{ matrix.shard }}.json
+          path: shard_out/
           retention-days: 1
+          if-no-files-found: ignore
 
   combine:
     name: Combine shards
     needs: shards
-    # A straggler shard or two (transient 403s even through the Cloudflare
-    # Worker fallback) shouldn't drop the whole cycle's data -- combine.py
-    # already tolerates missing shard files, and both ingest paths
-    # (district_show_log, district_current_daily/etc.) are upsert-only, so
-    # ingesting a partial run is always safe, never destructive. Only a
-    # total wipeout (every shard fails, no artifacts at all) fails this job
-    # for real, at the download-artifact step -- appropriately loud.
+    # A straggler shard or two (or District refusing every request) shouldn't
+    # drop the whole cycle -- combine.py tolerates missing shard files, and both
+    # ingest paths (district_show_log, district_current_daily/etc.) are
+    # upsert-only, so ingesting a partial run is always safe, never destructive.
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-scrape.txt
 
       - name: Download shard artifacts
-        uses: actions/download-artifact@v4
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          path: shard_data
+          pattern: district-detailed-*
+          merge-multiple: true
+
+      - name: Download shard artifacts (retry)
+        if: steps.download.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
         with:
           path: shard_data
           pattern: district-detailed-*
@@ -100,18 +130,13 @@ jobs:
 
       - name: Combine shards
         run: |
-          mkdir -p combined
-          for i in $(seq 1 24); do
-            if [ -f "shard_data/detailed${i}.json" ]; then
-              cp "shard_data/detailed${i}.json" "combined/detailed${i}.json"
-            fi
-          done
+          mkdir -p shard_data combined
           python -m backend.scrapers.district.combine \
-            --input-dir combined \
+            --input-dir shard_data \
             --output combined/final_rows.json
 
       - name: Upload combined rows
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: district-combined-daily
           path: combined/final_rows.json
@@ -125,10 +150,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -136,7 +161,16 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Download combined rows
-        uses: actions/download-artifact@v4
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: district-combined-daily
+          path: combined
+
+      - name: Download combined rows (retry)
+        if: steps.download.outcome == 'failure'
+        uses: actions/download-artifact@v8
         with:
           name: district-combined-daily
           path: combined

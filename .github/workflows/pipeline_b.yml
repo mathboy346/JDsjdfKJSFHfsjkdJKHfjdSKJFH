@@ -1,4 +1,10 @@
 # Manual: workflow_dispatch (triggered by an external scheduler)
+#
+# Same partial-result tolerance as pipeline_a.yml: a failed, timed-out or
+# partial (shard, day) job no longer discards the whole cycle. `combine` always
+# runs on what the shards produced, reports coverage (warning annotation + job
+# summary when it is below 98% or nothing was scraped), and ingest writes what
+# there is. Genuine breakage in combine/ingest still fails the run.
 name: Pipeline B
 
 on:
@@ -17,6 +23,9 @@ jobs:
     name: Shard ${{ matrix.shard }} / T+${{ matrix.day_offset }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # A shard job dying (runner lost, hard timeout) must not fail the run or
+    # skip combine; its venues just show up as missing in the coverage report.
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -25,53 +34,76 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install cloudscraper
+        run: pip install -r requirements-scrape.txt
 
       - name: Run shard
+        id: shard
+        continue-on-error: true
+        # Under the job timeout, so a slow shard stops (the script has its own
+        # SHARD_TIME_BUDGET_S, a little below this) and the artifact still uploads.
+        timeout-minutes: 52
         env:
           SHARD_ID: ${{ matrix.shard }}
           ADVANCE_DAY_OFFSET: ${{ matrix.day_offset }}
+          SHARD_TIME_BUDGET_S: "2400"
         run: |
+          mkdir -p shard_out
           OUT=$(python -m backend.scrapers.sharded.advance_shard)
-          cp "$OUT" "detailed-${{ matrix.shard }}-${{ matrix.day_offset }}.json"
+          cp "$OUT" "shard_out/detailed-${{ matrix.shard }}-${{ matrix.day_offset }}.json"
+          cp "$(dirname "$OUT")/status${{ matrix.shard }}.json" "shard_out/status-${{ matrix.shard }}-${{ matrix.day_offset }}.json"
+
+      - name: Flag failed shard
+        if: steps.shard.outcome == 'failure'
+        run: echo "::warning title=Shard ${{ matrix.shard }} / T+${{ matrix.day_offset }} failed::the shard step failed or timed out, so its venues are missing from this cycle (see the coverage report in the Combine job)"
 
       - name: Upload shard artifact
-        uses: actions/upload-artifact@v4
+        if: always()
+        uses: actions/upload-artifact@v7
         with:
           name: detailed-${{ matrix.shard }}-${{ matrix.day_offset }}
-          path: detailed-${{ matrix.shard }}-${{ matrix.day_offset }}.json
+          path: shard_out/
           retention-days: 1
+          if-no-files-found: ignore
 
   combine:
     name: Combine shards
     needs: shards
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
-        run: pip install cloudscraper
-
       - name: Download shard artifacts
-        uses: actions/download-artifact@v4
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          path: shard_data
+          pattern: detailed-*
+          merge-multiple: true
+
+      # The artifact service occasionally fails a listing/download request
+      # (it did on 2026-09-16, dropping a whole advance cycle); one retry avoids that.
+      - name: Download shard artifacts (retry)
+        if: steps.download.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/download-artifact@v8
         with:
           path: shard_data
           pattern: detailed-*
@@ -79,18 +111,19 @@ jobs:
 
       - name: Combine shards
         run: |
-          mkdir -p combined
-          cp shard_data/*.json combined/
+          mkdir -p shard_data combined
           python -m backend.scrapers.sharded.combine \
             --mode advance \
-            --input-dir combined \
+            --input-dir shard_data \
             --output combined/final_rows.json
 
       - name: Upload combined rows
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: combined-advance
-          path: combined/final_rows.json
+          path: |
+            combined/final_rows.json
+            combined/coverage.json
           retention-days: 1
 
   ingest-granular:
@@ -101,10 +134,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -112,7 +145,16 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Download combined rows
-        uses: actions/download-artifact@v4
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: combined-advance
+          path: combined
+
+      - name: Download combined rows (retry)
+        if: steps.download.outcome == 'failure'
+        uses: actions/download-artifact@v8
         with:
           name: combined-advance
           path: combined
@@ -135,10 +177,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -146,7 +188,16 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Download combined rows
-        uses: actions/download-artifact@v4
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: combined-advance
+          path: combined
+
+      - name: Download combined rows (retry)
+        if: steps.download.outcome == 'failure'
+        uses: actions/download-artifact@v8
         with:
           name: combined-advance
           path: combined

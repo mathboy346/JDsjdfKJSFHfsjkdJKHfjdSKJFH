@@ -47,6 +47,12 @@ def shard_id() -> int:
     return int(os.environ.get("SHARD_ID", "1"))
 
 
+def _log(msg: str) -> None:
+    """Progress/diagnostics go to stderr: stdout is reserved for the final output
+    path (the workflow reads the last stdout line)."""
+    print(msg, file=sys.stderr, flush=True)
+
+
 def daily_date_code() -> str:
     return datetime.now(IST).strftime("%Y%m%d")
 
@@ -97,20 +103,42 @@ def scrape_movie(mid: str, cities: set[str], dates: list[str]) -> list[dict]:
     return rows
 
 
+def _write_outputs(out_path: str, sid: int, rows: list[dict], status: dict) -> None:
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(rows, f, ensure_ascii=False)
+    status_file = os.path.join(os.path.dirname(out_path), f"status{sid}.json")
+    with open(status_file, "w", encoding="utf-8") as f:
+        json.dump({"shard": sid, "rows": len(rows), **status}, f, separators=(",", ":"))
+
+
 def main() -> int:
     sid = shard_id()
     dates = fetch_dates()
+    date_code = daily_date_code()
+    out_path = output_path("daily", date_code, sid)
 
-    listing_html = client.fetch_movies_listing_html()
+    try:
+        listing_html = client.fetch_movies_listing_html()
+    except Exception as e:
+        # The listing page is the first request every shard makes. If it can't be
+        # loaded (District answering HTTP 403, a network error, ...) this shard has
+        # nothing to scrape: finish cleanly with an empty result so the run
+        # completes, and let the combine job raise ONE visible warning for the
+        # whole run instead of 24 red shard failures.
+        reason = f"{type(e).__name__}: {str(e)[:200]}"
+        _log(f"DISTRICT SHARD {sid} | movie listing unavailable | {reason}")
+        _write_outputs(out_path, sid, [], {"listing_ok": False, "error": reason, "movies": 0, "fetch": dict(client.STATS)})
+        print(out_path, flush=True)
+        return 0
+
     all_movie_ids = list(discovery.discover_movies(listing_html).keys())
     my_movie_ids = _my_movies(all_movie_ids, sid, SHARD_COUNT)
     city_catalog = discovery.load_city_catalog()
     cities = discovery.all_target_cities(city_catalog)
 
-    print(
+    _log(
         f"DISTRICT SHARD {sid} | {len(my_movie_ids)}/{len(all_movie_ids)} movies | "
-        f"{len(cities)} cities x {len(dates)} dates each | dates={dates}",
-        flush=True,
+        f"{len(cities)} cities x {len(dates)} dates each | dates={dates}"
     )
 
     all_rows: list[dict] = []
@@ -119,21 +147,21 @@ def main() -> int:
         try:
             rows = scrape_movie(mid, cities, dates)
             all_rows.extend(rows)
-            print(
+            _log(
                 f"[{i}/{len(my_movie_ids)}] movie {mid} -> {len(rows)} rows "
-                f"in {time.monotonic() - t0:.1f}s",
-                flush=True,
+                f"in {time.monotonic() - t0:.1f}s"
             )
         except Exception as e:
-            print(f"FAIL movie {mid} | {type(e).__name__}: {e}", flush=True)
+            _log(f"FAIL movie {mid} | {type(e).__name__}: {e}")
 
     deduped = dedupe_rows(all_rows)
-    date_code = daily_date_code()
-    out_path = output_path("daily", date_code, sid)
-    with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(deduped, f, ensure_ascii=False)
+    stats = dict(client.STATS)
+    _write_outputs(
+        out_path, sid, deduped,
+        {"listing_ok": True, "error": None, "movies": len(my_movie_ids), "fetch": stats},
+    )
 
-    print(f"DONE | rows={len(deduped)} | wrote {out_path}", flush=True)
+    _log(f"DONE | rows={len(deduped)} | page fetches {stats} | wrote {out_path}")
     print(out_path, flush=True)
     return 0
 

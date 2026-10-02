@@ -19,6 +19,7 @@ DISTRICT_WORKER_URL/DISTRICT_WORKER_KEY aren't set.
 
 import os
 import re
+import threading
 import time
 
 import requests
@@ -43,6 +44,19 @@ _NEXT_DATA_RE = re.compile(
 
 class NotFoundError(Exception):
     """The movie/city combination doesn't exist on District (404)."""
+
+
+# Outcome counters for fetch_with_retry, so a run can report how many fetches
+# actually succeeded instead of silently swallowing every failure (a pair that
+# fails all retries just returns None). "denied" is the subset of "failed"
+# whose error was an HTTP 403.
+STATS = {"ok": 0, "not_found": 0, "failed": 0, "denied": 0}
+_STATS_LOCK = threading.Lock()
+
+
+def _bump(key: str) -> None:
+    with _STATS_LOCK:
+        STATS[key] += 1
 
 
 def _worker_configured() -> bool:
@@ -128,11 +142,17 @@ def fetch_with_retry(
     movie just isn't running in that city)."""
     for attempt in range(retries + 1):
         try:
-            return fetch_movie_sessions_raw(movie_id, city_slug, from_date=from_date)
+            data = fetch_movie_sessions_raw(movie_id, city_slug, from_date=from_date)
+            _bump("ok")
+            return data
         except NotFoundError:
+            _bump("not_found")
             return None
-        except Exception:
+        except Exception as e:
             if attempt == retries:
+                _bump("failed")
+                if "403" in str(e):
+                    _bump("denied")
                 return None
             time.sleep(1.5 * (attempt + 1))
     return None

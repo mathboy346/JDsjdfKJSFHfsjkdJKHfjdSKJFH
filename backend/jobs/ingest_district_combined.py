@@ -20,27 +20,15 @@ import sys
 import time
 from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy.exc import DBAPIError
-
 from backend.database import AsyncSessionLocal
 from backend.jobs.ingest_district_aggregates import ingest_district_aggregates
+from backend.jobs.retry import with_retries
 from backend.processors.aggregator import aggregate_rows
 from backend.scrapers.district.movie_matching import resolve_variant_keys
 from backend.scrapers.district.show_log import ingest_district_show_log
 
 logger = logging.getLogger(__name__)
-INGEST_MAX_RETRIES = 5
 IST = timezone(timedelta(hours=5, minutes=30))
-
-
-def _is_deadlock(exc: BaseException) -> bool:
-    while exc is not None:
-        if type(exc).__name__ == "DeadlockDetectedError":
-            return True
-        if "deadlock detected" in str(exc).lower():
-            return True
-        exc = exc.__cause__ or exc.__context__  # type: ignore[assignment]
-    return False
 
 
 def _group_rows_by_date(rows: list[dict]) -> dict[date, list[dict]]:
@@ -60,7 +48,10 @@ def _mode_for_date(show_date: date) -> str:
 
 async def _ingest_granular(rows: list[dict], mode: str, show_date: date) -> None:
     t0 = time.monotonic()
-    await ingest_district_show_log(rows, show_date=show_date)
+    await with_retries(
+        f"{mode}/{show_date} district_show_log ingest",
+        lambda: ingest_district_show_log(rows, show_date=show_date),
+    )
     logger.info(
         "Granular district_show_log complete for %s (%s) in %.1fs",
         show_date, mode, time.monotonic() - t0,
@@ -69,21 +60,12 @@ async def _ingest_granular(rows: list[dict], mode: str, show_date: date) -> None
 
 async def _ingest_aggregates(summary: dict, mode: str, show_date: date) -> None:
     t0 = time.monotonic()
-    for attempt in range(1, INGEST_MAX_RETRIES + 1):
-        try:
-            async with AsyncSessionLocal() as db:
-                await ingest_district_aggregates(db, summary, snap_type=mode, date_for=show_date)
-            break
-        except DBAPIError as exc:
-            if _is_deadlock(exc) and attempt < INGEST_MAX_RETRIES:
-                delay = min(2 ** attempt, 30)
-                logger.warning(
-                    "Deadlock during %s/%s District aggregate ingest (attempt %d/%d), retrying in %ds",
-                    mode, show_date, attempt, INGEST_MAX_RETRIES, delay,
-                )
-                await asyncio.sleep(delay)
-                continue
-            raise
+
+    async def _once() -> None:
+        async with AsyncSessionLocal() as db:
+            await ingest_district_aggregates(db, summary, snap_type=mode, date_for=show_date)
+
+    await with_retries(f"{mode}/{show_date} District aggregate ingest", _once)
 
     logger.info(
         "%s/%s District aggregate ingest complete in %.1fs", mode, show_date, time.monotonic() - t0
@@ -93,6 +75,10 @@ async def _ingest_aggregates(summary: dict, mode: str, show_date: date) -> None:
 async def ingest_from_rows(rows: list[dict]) -> None:
     if not rows:
         logger.warning("No rows to ingest — skipping")
+        print(
+            "::warning title=No District rows to ingest::the scrape produced no sessions, so nothing was written this cycle",
+            flush=True,
+        )
         return
 
     rows = await resolve_variant_keys(rows)

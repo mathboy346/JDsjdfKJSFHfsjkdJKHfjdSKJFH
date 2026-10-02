@@ -8,15 +8,13 @@ import sys
 import time
 from datetime import date, datetime
 
-from sqlalchemy.exc import DBAPIError
-
 from backend.database import AsyncSessionLocal
 from backend.ingest import ingest_rows
+from backend.jobs.retry import with_retries
 from backend.processors.aggregator import aggregate_rows
 from backend.scrapers.show_log import ingest_show_log
 
 logger = logging.getLogger(__name__)
-INGEST_MAX_RETRIES = 5
 # Keep in sync with LIVE_CUTOFF_HOURS in the bh repo's
 # backend/processors/live_cutoff.py (this repo has no API layer, so no shared
 # import is possible — the two must be changed together).
@@ -46,16 +44,6 @@ def _cutoff_rows_for_aggregation(rows: list[dict], mode: str) -> list[dict]:
     ]
 
 
-def _is_deadlock(exc: BaseException) -> bool:
-    while exc is not None:
-        if type(exc).__name__ == "DeadlockDetectedError":
-            return True
-        if "deadlock detected" in str(exc).lower():
-            return True
-        exc = exc.__cause__ or exc.__context__  # type: ignore[assignment]
-    return False
-
-
 def _group_rows_by_date(rows: list[dict]) -> dict[date, list[dict]]:
     """Split combined rows by their own `date` field (set at scrape time — see
     runner.py's enrich()/daily_row_filter()) rather than assuming a single
@@ -74,7 +62,10 @@ def _group_rows_by_date(rows: list[dict]) -> dict[date, list[dict]]:
 
 async def _ingest_granular(rows: list[dict], mode: str, show_date: date) -> None:
     t0 = time.monotonic()
-    await ingest_show_log(None, rows, show_date=show_date)
+    await with_retries(
+        f"{mode}/{show_date} show_log ingest",
+        lambda: ingest_show_log(None, rows, show_date=show_date),
+    )
     logger.info(
         "Granular show_log complete for %s (%s) in %.1fs",
         show_date,
@@ -85,25 +76,12 @@ async def _ingest_granular(rows: list[dict], mode: str, show_date: date) -> None
 
 async def _ingest_aggregates(summary: dict, mode: str, show_date: date) -> None:
     t0 = time.monotonic()
-    for attempt in range(1, INGEST_MAX_RETRIES + 1):
-        try:
-            async with AsyncSessionLocal() as db:
-                await ingest_rows(db, summary, snap_type=mode, date_for=show_date)
-            break
-        except DBAPIError as exc:
-            if _is_deadlock(exc) and attempt < INGEST_MAX_RETRIES:
-                delay = min(2 ** attempt, 30)
-                logger.warning(
-                    "Deadlock during %s/%s ingest (attempt %d/%d), retrying in %ds",
-                    mode,
-                    show_date,
-                    attempt,
-                    INGEST_MAX_RETRIES,
-                    delay,
-                )
-                await asyncio.sleep(delay)
-                continue
-            raise
+
+    async def _once() -> None:
+        async with AsyncSessionLocal() as db:
+            await ingest_rows(db, summary, snap_type=mode, date_for=show_date)
+
+    await with_retries(f"{mode}/{show_date} aggregate ingest", _once)
 
     logger.info(
         "%s/%s aggregate ingest complete in %.1fs",
@@ -161,6 +139,10 @@ async def ingest_from_rows(
 ) -> None:
     if not rows:
         logger.warning("No rows to ingest — skipping")
+        print(
+            f"::warning title=No rows to ingest ({mode})::the scrape produced no shows, so nothing was written this cycle",
+            flush=True,
+        )
         return
 
     if granular_only and aggregates_only:
