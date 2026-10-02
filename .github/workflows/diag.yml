@@ -16,8 +16,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, macos-15]
-        n: [1, 2, 3]
+        os: [ubuntu-latest]
+        n: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -30,4 +30,4 @@ jobs:
           PROBE_N: ${{ matrix.n }}
           DISTRICT_WORKER_URL: ${{ secrets.DISTRICT_WORKER_URL }}
           DISTRICT_WORKER_KEY: ${{ secrets.DISTRICT_WORKER_KEY }}
-        run: python diag_probe.py all
+        run: python diag_probe.py
