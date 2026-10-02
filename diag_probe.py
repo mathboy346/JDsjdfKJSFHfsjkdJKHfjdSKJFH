@@ -36,6 +36,7 @@ def show_ip() -> None:
 def clients():
     out = {}
     out["requests"] = lambda url, headers, **kw: requests.get(url, headers=headers, timeout=20, **kw)
+    out["requests-okhttp"] = lambda url, headers, **kw: requests.get(url, headers={**headers, "User-Agent": "okhttp/4.12.0"}, timeout=20, **kw)
     try:
         import cloudscraper
 
@@ -46,8 +47,10 @@ def clients():
     try:
         from curl_cffi import requests as cffi
 
-        for imp in ("chrome124", "chrome131", "safari17_0"):
-            out[f"cffi-{imp}"] = (lambda imp: lambda url, headers, **kw: cffi.get(url, headers=headers, timeout=20, impersonate=imp, **kw))(imp)
+        for imp in ("safari17_0", "safari18_0", "safari17_2_ios", "safari18_0_ios", "firefox133", "chrome131_android"):
+            # native: keep curl_cffi's own matching headers (UA etc.), only add Accept-Language/Origin/Referer
+            out[f"cffi-{imp}-native"] = (lambda imp: lambda url, headers, **kw: cffi.get(url, headers={k: v for k, v in headers.items() if k != "User-Agent"}, timeout=20, impersonate=imp, **kw))(imp)
+        out["cffi-safari17_0-chromeUA"] = lambda url, headers, **kw: cffi.get(url, headers=headers, timeout=20, impersonate="safari17_0", **kw)
     except Exception as e:
         print("curl_cffi unavailable", e, flush=True)
     return out
@@ -121,6 +124,7 @@ if __name__ == "__main__":
     show_ip()
     cl = clients()
     which = sys.argv[1] if len(sys.argv) > 1 else "all"
+    print("PLATFORM", sys.platform, flush=True)
     if which in ("all", "bms"):
         probe_bms(cl)
     if which in ("all", "district"):
