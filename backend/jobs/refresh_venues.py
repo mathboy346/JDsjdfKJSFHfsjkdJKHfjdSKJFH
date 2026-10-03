@@ -39,6 +39,10 @@ CITIES_FILE = os.path.join(_DATA_DIR, "citiesbms.json")
 # one runner's request burst doesn't trip rate-limiting on its own.
 CATALOG_WORKERS = int(os.environ.get("VENUE_REFRESH_CONCURRENCY", "5"))
 PRUNE_AFTER_DAYS = int(os.environ.get("VENUE_PRUNE_AFTER_DAYS", "21"))
+# If the catalog crawl finds fewer than this share of the venues we already
+# track, it did not really work (most cities failed), so "absent from the
+# catalog" says nothing about whether a venue still exists -- nothing is pruned.
+MIN_DISCOVERY_FRACTION = float(os.environ.get("VENUE_MIN_DISCOVERY_FRACTION", "0.5"))
 # Backoff before each retry round: 15s, 30s, 60s, 120s, 240s (capped).
 RETRY_BACKOFF_BASE_SECONDS = 15
 RETRY_BACKOFF_CAP_SECONDS = 240
@@ -176,6 +180,23 @@ async def build_refreshed_venue_map() -> tuple[dict[str, dict], int, int]:
 
     new_codes = set(discovered) - set(existing)
     absent_codes = set(existing) - set(discovered)
+
+    if len(discovered) < MIN_DISCOVERY_FRACTION * len(existing):
+        # A failed or mostly failed crawl makes nearly every tracked venue look
+        # "absent", which would turn the silence check below into the only thing
+        # standing between a blip and pruning. Don't prune on a crawl we can't
+        # trust; any venues it did find are still added (those are real).
+        logger.warning(
+            "Catalog crawl found only %d venues vs %d tracked (< %.0f%%) -- treating it as "
+            "unreliable and skipping pruning this run",
+            len(discovered), len(existing), MIN_DISCOVERY_FRACTION * 100,
+        )
+        print(
+            f"::warning title=Venue catalog crawl incomplete::found {len(discovered)} venues vs "
+            f"{len(existing)} tracked; pruning skipped this run",
+            flush=True,
+        )
+        absent_codes = set()
 
     # Grace period: a venue added within the last PRUNE_AFTER_DAYS days hasn't
     # necessarily been scraped by the byvenue scraper even once yet (it only
