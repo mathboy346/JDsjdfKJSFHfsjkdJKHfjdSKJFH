@@ -106,6 +106,7 @@ def coverage_report(input_dir: str, mode: str, rows: int) -> dict:
 
     expected = scraped = 0
     no_output: list[str] = []
+    nothing: list[str] = []
     partial: list[str] = []
     budget_hit: list[str] = []
     for sid in range(1, SHARD_COUNT + 1):
@@ -118,9 +119,12 @@ def coverage_report(input_dir: str, mode: str, rows: int) -> dict:
                 continue
             assigned = int(st.get("assigned", 0))
             failed = len(st.get("failed", []))
-            scraped += max(0, assigned - failed)
-            if failed:
-                partial.append(f"{label(sid, off)} ({max(0, assigned - failed)}/{assigned})")
+            ok = max(0, assigned - failed)
+            scraped += ok
+            if assigned and ok == 0:
+                nothing.append(label(sid, off))
+            elif failed:
+                partial.append(f"{label(sid, off)} ({ok}/{assigned})")
             if st.get("budget_hit"):
                 budget_hit.append(label(sid, off))
 
@@ -132,6 +136,7 @@ def coverage_report(input_dir: str, mode: str, rows: int) -> dict:
         "venues_scraped": scraped,
         "coverage": round(coverage, 4),
         "units_with_no_output": no_output,
+        "units_nothing_scraped": nothing,
         "units_partial": partial,
         "units_time_budget_hit": budget_hit,
     }
@@ -150,6 +155,8 @@ def annotate(report: dict) -> None:
     details = []
     if report["units_with_no_output"]:
         details.append("no output from: " + ", ".join(report["units_with_no_output"]))
+    if report["units_nothing_scraped"]:
+        details.append("every venue failed in: " + ", ".join(report["units_nothing_scraped"]))
     if report["units_partial"]:
         details.append("partial: " + ", ".join(report["units_partial"]))
     if report["units_time_budget_hit"]:
